@@ -3,7 +3,7 @@ title: newstreamerlegacy
 emoji: 🚀
 colorFrom: green
 colorTo: blue
-sdk: gradio
+sdk: docker
 sdk_version: 4.41.0
 app_file: app.py
 pinned: false
