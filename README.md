@@ -4,6 +4,7 @@ emoji: 🚀
 colorFrom: green
 colorTo: blue
 sdk: docker
+hardware: cpu-basic
 sdk_version: 4.41.0
 app_file: app.py
 pinned: false
