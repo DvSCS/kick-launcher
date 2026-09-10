@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, Image as ImageIcon, Layout, X, Clock, Navigation, Square as BoxIcon, RefreshCw } from "lucide-react";
+import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, Image as ImageIcon, Layout, X, Clock, Navigation, Square as BoxIcon, RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type StreamMode = 'upload' | 'reback';
@@ -33,6 +33,8 @@ const CANVAS_H = 1080;
 export default function Home() {
   const [streamUrl, setStreamUrl] = useState("rtmps://stream.kick.com:443/app");
   const [streamKey, setStreamKey] = useState("");
+  const [workerUrl, setWorkerUrl] = useState("");
+  const [workerStatus, setWorkerStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   
   const [mode, setMode] = useState<StreamMode>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -56,7 +58,8 @@ export default function Home() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await fetch("/api/stream/status");
+        const apiBase = workerUrl ? workerUrl.replace(/\/$/, '') : '';
+        const res = await fetch(`${apiBase}/api/stream/status`);
         if (res.ok) {
           const data = await res.json();
           setIsStreaming(data.isStreaming);
@@ -70,9 +73,30 @@ export default function Home() {
     };
 
     checkStatus();
-    const interval = setInterval(checkStatus, 3000);
+    const interval = setInterval(checkStatus, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [workerUrl]);
+
+  useEffect(() => {
+    if (!workerUrl) {
+      setWorkerStatus('idle');
+      return;
+    }
+    
+    setWorkerStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const apiBase = workerUrl.replace(/\/$/, '');
+        const res = await fetch(`${apiBase}/api/stream/status`);
+        if (res.ok) setWorkerStatus('valid');
+        else setWorkerStatus('invalid');
+      } catch (err) {
+        setWorkerStatus('invalid');
+      }
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(timer);
+  }, [workerUrl]);
 
   const handleBaseVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -218,8 +242,14 @@ export default function Home() {
       formData.append("playlist", JSON.stringify(finalPlaylist));
     }
 
+    if (workerStatus !== 'valid') {
+      setError("Você precisa conectar um Link de Motor válido antes de iniciar a live.");
+      return;
+    }
+
     try {
-      const res = await fetch("/api/stream/start", {
+      const apiBase = workerUrl.replace(/\/$/, '');
+      const res = await fetch(`${apiBase}/api/stream/start`, {
         method: "POST",
         body: formData,
       });
@@ -239,7 +269,8 @@ export default function Home() {
   const stopStream = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/stream/stop", { method: "POST" });
+      const apiBase = workerUrl.replace(/\/$/, '');
+      const res = await fetch(`${apiBase}/api/stream/stop`, { method: "POST" });
       if (res.ok) {
         setIsStreaming(false);
       } else {
@@ -280,7 +311,8 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch("/api/stream/update", {
+      const apiBase = workerUrl.replace(/\/$/, '');
+      const res = await fetch(`${apiBase}/api/stream/update`, {
         method: "POST",
         body: formData,
       });
@@ -340,6 +372,22 @@ export default function Home() {
                      <input type="password" value={streamKey} onChange={(e) => setStreamKey(e.target.value)} disabled={isStreaming} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-kick" />
                   </div>
                </div>
+               
+               <div className="relative">
+                  <div className="flex justify-between items-end mb-2">
+                     <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">Conexão do Motor (Obrigatório)</label>
+                     <a href="/KickWorker.zip" download className="text-xs font-bold text-kick hover:underline flex items-center gap-1"><UploadCloud className="w-3 h-3"/> Baixar Motor (.exe)</a>
+                  </div>
+                  <div className="relative flex items-center">
+                    <input type="text" value={workerUrl} onChange={(e) => setWorkerUrl(e.target.value)} disabled={isStreaming} placeholder="Cole o link gerado pelo Motor (ex: https://xxx.loca.lt)" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-kick pr-12" />
+                    <div className="absolute right-3 flex items-center justify-center">
+                       {workerStatus === 'checking' && <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />}
+                       {workerStatus === 'valid' && <CheckCircle2 className="w-5 h-5 text-green-500 bg-green-500/10 rounded-full" />}
+                       {workerStatus === 'invalid' && <XCircle className="w-5 h-5 text-red-500 bg-red-500/10 rounded-full" />}
+                    </div>
+                  </div>
+                  {workerStatus === 'invalid' && workerUrl.length > 0 && <p className="text-xs text-red-400 mt-2">Link inválido ou Motor offline.</p>}
+               </div>
 
                <hr className="border-white/5" />
 
@@ -392,7 +440,7 @@ export default function Home() {
                         <Square className="w-5 h-5 fill-current" /> Parar Live
                      </button>
                   ) : (
-                     <button onClick={startStream} disabled={isLoading} className="flex-1 bg-kick text-black hover:bg-kick/80 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                     <button onClick={startStream} disabled={isLoading || workerStatus !== 'valid'} className={`flex-1 ${workerStatus !== 'valid' ? 'bg-kick/20 text-kick/40 cursor-not-allowed' : 'bg-kick text-black hover:bg-kick/80'} py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all`}>
                         <Play className="w-5 h-5 fill-current" /> {isLoading ? 'Ligando...' : 'Iniciar Transmissão'}
                      </button>
                   )}
