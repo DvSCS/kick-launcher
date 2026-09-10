@@ -172,6 +172,7 @@ const streamManager = {
 
     activeCommand
       .outputOptions([
+        '-map 0:a?',
         '-c:v libx264',
         '-preset veryfast',
         '-profile:v main',

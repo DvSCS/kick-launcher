@@ -56,6 +56,30 @@ export default function Home() {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const saved = localStorage.getItem('kick_launcher_data');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.streamUrl) setStreamUrl(data.streamUrl);
+        if (data.streamKey) setStreamKey(data.streamKey);
+        if (data.workerUrl) setWorkerUrl(data.workerUrl);
+        if (data.mode) setMode(data.mode);
+        if (data.playlist) setPlaylist(data.playlist);
+      } catch (e) {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('kick_launcher_data', JSON.stringify({
+      streamUrl,
+      streamKey,
+      workerUrl,
+      mode,
+      playlist
+    }));
+  }, [streamUrl, streamKey, workerUrl, mode, playlist]);
+
+  useEffect(() => {
     const checkStatus = async () => {
       try {
         const apiBase = workerUrl ? workerUrl.replace(/\/$/, '') : '';
