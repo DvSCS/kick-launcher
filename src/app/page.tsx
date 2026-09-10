@@ -668,13 +668,25 @@ export default function Home() {
                         <div className="grid grid-cols-2 gap-4">
                            {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
                               <>
-                                 <div>
-                                    <label className="block text-xs font-bold text-text-secondary mb-1">COR FFmpeg</label>
-                                    <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, { color: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder="white, red, #ff0000" />
+                                 <div className="col-span-2 grid grid-cols-2 gap-4">
+                                    <div>
+                                       <label className="block text-xs font-bold text-text-secondary mb-1">COR FFmpeg</label>
+                                       <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, { color: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder="white, red, #ff0000" />
+                                    </div>
+                                    <div>
+                                       <label className="block text-xs font-bold text-text-secondary mb-1">TAM. FONTE (px)</label>
+                                       <input type="number" value={layer.fontsize} onChange={(e) => updateLayer(layer.id, { fontsize: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                    </div>
                                  </div>
-                                 <div>
-                                    <label className="block text-xs font-bold text-text-secondary mb-1">TAM. FONTE (px)</label>
-                                    <input type="number" value={layer.fontsize} onChange={(e) => updateLayer(layer.id, { fontsize: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                 <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-text-secondary mb-1">FONTE DO TEXTO</label>
+                                    <select value={layer.font || 'arial'} onChange={(e) => updateLayer(layer.id, { font: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-kick">
+                                       <option value="arial">Arial</option>
+                                       <option value="impact">Impact</option>
+                                       <option value="verdana">Verdana</option>
+                                       <option value="tahoma">Tahoma</option>
+                                       <option value="comic">Comic Sans</option>
+                                    </select>
                                  </div>
                               </>
                            )}
