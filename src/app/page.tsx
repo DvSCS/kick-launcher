@@ -59,7 +59,11 @@ export default function Home() {
     const checkStatus = async () => {
       try {
         const apiBase = workerUrl ? workerUrl.replace(/\/$/, '') : '';
-        const res = await fetch(`${apiBase}/api/stream/status`);
+        const res = await fetch(`${apiBase}/api/stream/status`, {
+          headers: {
+            "Bypass-Tunnel-Reminder": "true"
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setIsStreaming(data.isStreaming);
@@ -87,7 +91,11 @@ export default function Home() {
     const timer = setTimeout(async () => {
       try {
         const apiBase = workerUrl.replace(/\/$/, '');
-        const res = await fetch(`${apiBase}/api/stream/status`);
+        const res = await fetch(`${apiBase}/api/stream/status`, {
+          headers: {
+            "Bypass-Tunnel-Reminder": "true"
+          }
+        });
         if (res.ok) setWorkerStatus('valid');
         else setWorkerStatus('invalid');
       } catch (err) {
@@ -252,6 +260,9 @@ export default function Home() {
       const res = await fetch(`${apiBase}/api/stream/start`, {
         method: "POST",
         body: formData,
+        headers: {
+          "Bypass-Tunnel-Reminder": "true"
+        }
       });
       const data = await res.json();
       if (!res.ok) {
@@ -270,7 +281,12 @@ export default function Home() {
     setIsLoading(true);
     try {
       const apiBase = workerUrl.replace(/\/$/, '');
-      const res = await fetch(`${apiBase}/api/stream/stop`, { method: "POST" });
+      const res = await fetch(`${apiBase}/api/stream/stop`, { 
+        method: "POST",
+        headers: {
+          "Bypass-Tunnel-Reminder": "true"
+        }
+      });
       if (res.ok) {
         setIsStreaming(false);
       } else {
@@ -315,6 +331,9 @@ export default function Home() {
       const res = await fetch(`${apiBase}/api/stream/update`, {
         method: "POST",
         body: formData,
+        headers: {
+          "Bypass-Tunnel-Reminder": "true"
+        }
       });
       const data = await res.json();
       if (!res.ok) {
