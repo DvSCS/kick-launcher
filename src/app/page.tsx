@@ -251,7 +251,13 @@ export default function Home() {
     if (mode === 'upload' && file) {
       formData.append("video", file);
     } else if (mode === 'reback') {
-      const finalPlaylist = playlist.map(p => ({
+      const validItems = playlist.filter(p => p.url.trim() !== '');
+      if (validItems.length === 0) {
+        setError("Adicione pelo menos um link na playlist.");
+        setIsLoading(false);
+        return;
+      }
+      const finalPlaylist = validItems.map(p => ({
         url: p.url,
         durationMs: p.duration * (p.unit === 'h' ? 3600000 : 60000),
         isLoop: false
@@ -261,6 +267,7 @@ export default function Home() {
 
     if (workerStatus !== 'valid') {
       setError("Você precisa conectar um Link de Motor válido antes de iniciar a live.");
+      setIsLoading(false);
       return;
     }
 

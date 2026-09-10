@@ -20,10 +20,26 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
     const body = req.body;
     const streamUrl = body.streamUrl;
     const streamKey = body.streamKey;
-    const playlist = JSON.parse(body.playlist || '[]');
+    const mode = body.mode;
+    
+    let playlist = [];
+    if (mode === 'upload') {
+      const baseVideo = req.files.find(f => f.fieldname === 'video');
+      if (baseVideo) {
+        const ext = path.extname(baseVideo.originalname) || '.mp4';
+        const newPath = path.join(__dirname, 'tmp', `base_video_${Date.now()}${ext}`);
+        await fs.rename(baseVideo.path, newPath);
+        playlist.push({ url: newPath, isLoop: true });
+      } else {
+        throw new Error("Vídeo base não foi enviado.");
+      }
+    } else {
+      playlist = JSON.parse(body.playlist || '[]');
+    }
+
     let overlayItems = JSON.parse(body.overlayItems || '[]');
 
-    // Process files
+    // Process overlay files
     for (let i = 0; i < overlayItems.length; i++) {
       const item = overlayItems[i];
       if (item.type === 'media') {
