@@ -69,12 +69,13 @@ const streamManager = {
     const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
     
     const baseOptions = [
+      '-re', // Sempre ler em tempo real para não inundar o servidor RTMP (VODs causam loops se enviados muito rápido)
       '-user_agent', 'Mozilla/5.0',
-      '-fflags', '+genpts+discardcorrupt'
+      '-fflags', '+genpts+discardcorrupt+igndts'
     ];
 
     const inputOptions = item.isLoop 
-      ? ['-re', '-stream_loop', '-1', ...baseOptions] 
+      ? ['-stream_loop', '-1', ...baseOptions] 
       : isHls 
         ? [
             ...baseOptions,
@@ -85,7 +86,6 @@ const streamManager = {
           ]
         : [
             ...baseOptions,
-            ...(isVod ? ['-re'] : []),
             '-reconnect', '1', 
             '-reconnect_streamed', '1', 
             '-reconnect_delay_max', '5',
