@@ -100,12 +100,20 @@ const streamManager = {
     const isHls = item.url.includes('.m3u8') || item.url.includes('.m3u');
     const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
     
+    // Para lives puras (.m3u8 que não são VOD), NÃO usamos -re, pois o FFmpeg precisa puxar na velocidade que a fonte gera.
+    // Usar -re em uma live HLS verdadeira causa stuttering por dessincronia.
+    // Mas para VODs ou arquivos locais, PRECISAMOS do -re para não processar 1 hora de vídeo em 1 segundo.
+    const useRe = isVod || item.isLoop;
+
     const baseOptions = [
-      '-re', // OBRIGATÓRIO: Pacing em tempo real para não desconectar o RTMP por timeout ou burst
       '-thread_queue_size', '1024',
       '-user_agent', 'Mozilla/5.0',
       '-fflags', '+genpts+discardcorrupt+igndts'
     ];
+    
+    if (useRe) {
+      baseOptions.unshift('-re');
+    }
 
     const inputOptions = item.isLoop 
       ? ['-stream_loop', '-1', ...baseOptions] 
@@ -155,7 +163,10 @@ const streamManager = {
         }
         
         const fontSizeStr = overlayItem.fontsize || '48';
-        const fontFile = os.platform() === 'win32' ? "C\\\\:/Windows/Fonts/Arial.ttf" : "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+        const fontName = (overlayItem.font || 'arial').toLowerCase();
+        let fontFile = os.platform() === 'win32' 
+          ? `C\\\\:/Windows/Fonts/${fontName}.ttf` 
+          : `/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf`;
 
         let textFilterParams = `text='${textToDraw}':x=${overlayItem.x}:y=${overlayItem.y}:fontcolor=${colorStr}:fontsize=${fontSizeStr}:fontfile='${fontFile}'`;
 
@@ -221,11 +232,11 @@ const streamManager = {
         '-c:v libx264',
         '-preset ultrafast',
         '-profile:v main',
-        '-b:v 3000k',
-        '-maxrate 3000k',
-        '-bufsize 6000k',
+        '-b:v 2000k',
+        '-maxrate 2000k',
+        '-bufsize 4000k',
         '-pix_fmt yuv420p',
-        '-s 1920x1080',
+        '-s 1280x720',
         '-r 30',
         '-g 60',
         '-c:a aac',

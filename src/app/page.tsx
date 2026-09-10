@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, Image as ImageIcon, Layout, X, Clock, Navigation, Square as BoxIcon, RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Rnd } from "react-rnd";
 
 type StreamMode = 'upload' | 'reback';
 type LayerType = 'text' | 'media' | 'clock' | 'marquee' | 'box';
@@ -24,11 +25,15 @@ interface LayerUI {
   height: string;
   x: number;
   y: number;
+  font?: string;
   file: File | null;
 }
 
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
+const PREVIEW_W = 960;
+const PREVIEW_H = 540;
+const RATIO = CANVAS_W / PREVIEW_W; // 2
 
 export default function Home() {
   const [streamUrl, setStreamUrl] = useState("rtmps://stream.kick.com:443/app");
@@ -184,8 +189,15 @@ export default function Home() {
     setActiveLayerId(newLayer.id);
   };
 
-  const updateLayer = (id: string, updates: Partial<LayerUI>) => {
-    setLayers(layers.map(l => l.id === id ? { ...l, ...updates } : l));
+  const updateLayer = (id: string, keyOrUpdates: keyof LayerUI | Partial<LayerUI>, value?: any) => {
+    setLayers(layers.map(l => {
+      if (l.id !== id) return l;
+      if (typeof keyOrUpdates === 'string') {
+        return { ...l, [keyOrUpdates]: value };
+      } else {
+        return { ...l, ...keyOrUpdates };
+      }
+    }));
   };
 
   const removeLayer = (id: string) => {
@@ -212,7 +224,6 @@ export default function Home() {
         const ffmpegDx = dx * (CANVAS_W / rect.width);
         const ffmpegDy = dy * (CANVAS_H / rect.height);
         
-        // Se for box que ocupa a tela toda, as vezes é melhor mover só o Y
         updateLayer(layerId, {
            x: Math.round(startLayerX + ffmpegDx),
            y: Math.round(startLayerY + ffmpegDy)
@@ -258,6 +269,7 @@ export default function Home() {
           text: l.text,
           color: l.color,
           fontsize: l.fontsize,
+          font: l.font,
           width: l.width,
           height: l.height,
           x: l.x,
@@ -352,6 +364,7 @@ export default function Home() {
           text: l.text,
           color: l.color,
           fontsize: l.fontsize,
+          font: l.font,
           width: l.width,
           height: l.height,
           x: l.x,
@@ -535,47 +548,79 @@ export default function Home() {
 
             <div 
                ref={canvasRef}
-               className="relative bg-black border border-white/20 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden aspect-video w-full max-w-[1400px]"
-               style={{ backgroundImage: 'linear-gradient(45deg, #151515 25%, transparent 25%), linear-gradient(-45deg, #151515 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #151515 75%), linear-gradient(-45deg, transparent 75%, #151515 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' }}
+               className="relative bg-black border border-white/20 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden shrink-0"
+               style={{ 
+                  width: PREVIEW_W, 
+                  height: PREVIEW_H,
+                  backgroundImage: 'linear-gradient(45deg, #151515 25%, transparent 25%), linear-gradient(-45deg, #151515 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #151515 75%), linear-gradient(-45deg, transparent 75%, #151515 75%)', 
+                  backgroundSize: '20px 20px', 
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' 
+               }}
             >
                {layers.map(layer => {
                   let styleObj: React.CSSProperties = {
-                     position: 'absolute',
-                     left: layer.type === 'marquee' ? '50%' : `${(layer.x / CANVAS_W) * 100}%`,
-                     top: `${(layer.y / CANVAS_H) * 100}%`,
-                     transform: layer.type === 'box' ? 'none' : 'translate(-50%, -50%)',
-                     cursor: (isStreaming || layer.type === 'marquee') ? 'default' : 'move'
+                     width: '100%',
+                     height: '100%',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
                   };
 
                   if (layer.type === 'box') {
-                     styleObj.left = `${(layer.x / CANVAS_W) * 100}%`;
-                     styleObj.width = `${(parseInt(layer.width) / CANVAS_W) * 100}%`;
-                     styleObj.height = `${(parseInt(layer.height) / CANVAS_H) * 100}%`;
                      let [color, alpha] = layer.color.split('@');
                      let alphaVal = alpha ? parseFloat(alpha) : 1;
-                     styleObj.backgroundColor = color === 'black' ? `rgba(0,0,0,${alphaVal})` : layer.color; // simplified preview
-                     styleObj.transform = 'none';
+                     styleObj.backgroundColor = color === 'black' ? `rgba(0,0,0,${alphaVal})` : layer.color; 
                   }
 
+                  const previewX = layer.x / RATIO;
+                  const previewY = layer.y / RATIO;
+                  
+                  let previewW = 0;
+                  let previewH = 0;
+                  if (layer.type === 'box' || layer.type === 'media') {
+                     previewW = parseInt(layer.width) / RATIO;
+                     previewH = parseInt(layer.height) / RATIO;
+                  }
+
+                  const onDragStop = (e: any, d: any) => {
+                     updateLayer(layer.id, 'x', Math.round(d.x * RATIO));
+                     updateLayer(layer.id, 'y', Math.round(d.y * RATIO));
+                  };
+                  
+                  const onResizeStop = (e: any, direction: any, ref: any, delta: any, position: any) => {
+                     updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
+                     updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
+                     updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
+                     updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
+                  };
+
                   return (
-                     <div
+                     <Rnd
                         key={layer.id}
+                        bounds="parent"
+                        size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : undefined}
+                        position={{ x: previewX, y: previewY }}
+                        onDragStop={onDragStop}
+                        onResizeStop={onResizeStop}
+                        enableResizing={(layer.type === 'box' || layer.type === 'media') && activeLayerId === layer.id}
+                        disableDragging={isStreaming && activeLayerId !== layer.id}
                         onPointerDown={(e) => handleLayerPointerDown(e, layer.id)}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
-                        style={styleObj}
                      >
-                        {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
-                           <div style={{ color: layer.color, fontSize: `${Math.max(12, parseInt(layer.fontsize) / 2)}px`, whiteSpace: 'nowrap', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
-                              {layer.type === 'clock' ? '12:00:00' : (layer.text || 'Texto Vazio')}
-                           </div>
-                        )}
-                        {layer.type === 'media' && (
-                           <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg flex flex-col items-center justify-center gap-2" style={{ width: `${Math.max(50, parseInt(layer.width) / 2)}px`, aspectRatio: '16/9' }}>
-                              <ImageIcon className="w-8 h-8 text-white/50" />
-                              <span className="text-[10px] text-white/50 truncate max-w-full px-2">{layer.file ? layer.file.name : 'Mídia Vazia'}</span>
-                           </div>
-                        )}
-                     </div>
+                        <div style={styleObj}>
+                           {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
+                              <div style={{ color: layer.color, fontFamily: layer.font || 'Arial', fontSize: `${Math.max(12, parseInt(layer.fontsize) / RATIO)}px`, whiteSpace: 'nowrap', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
+                                 {layer.type === 'clock' ? '12:00:00' : (layer.text || 'Texto Vazio')}
+                              </div>
+                           )}
+                           {layer.type === 'media' && (
+                              <div className="bg-white/10 backdrop-blur-sm w-full h-full flex flex-col items-center justify-center gap-2 rounded overflow-hidden">
+                                 <ImageIcon className="w-8 h-8 text-white/50" />
+                                 <span className="text-[10px] text-white/50 truncate max-w-full px-2">{layer.file ? layer.file.name : 'Mídia'}</span>
+                              </div>
+                           )}
+                        </div>
+                     </Rnd>
                   );
                })}
 
