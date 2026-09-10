@@ -68,18 +68,30 @@ const streamManager = {
     const isHls = item.url.includes('.m3u8') || item.url.includes('.m3u');
     const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
     
+    const baseOptions = [
+      '-user_agent', 'Mozilla/5.0',
+      '-fflags', '+genpts+discardcorrupt'
+    ];
+
     const inputOptions = item.isLoop 
-      ? ['-re', '-stream_loop', '-1'] 
-      : [
-          ...(isVod ? ['-re'] : []),
-          '-reconnect', '1', 
-          '-reconnect_streamed', '1', 
-          '-reconnect_delay_max', '5',
-          '-reconnect_on_network_error', '1',
-          '-reconnect_on_http_error', '4xx,5xx',
-          ...(isHls ? ['-live_start_index', '-1'] : []),
-          '-user_agent', 'Mozilla/5.0'
-        ];
+      ? ['-re', '-stream_loop', '-1', ...baseOptions] 
+      : isHls 
+        ? [
+            ...baseOptions,
+            '-reconnect', '1', 
+            '-reconnect_delay_max', '5',
+            '-reconnect_on_network_error', '1',
+            '-reconnect_on_http_error', '4xx,5xx'
+          ]
+        : [
+            ...baseOptions,
+            ...(isVod ? ['-re'] : []),
+            '-reconnect', '1', 
+            '-reconnect_streamed', '1', 
+            '-reconnect_delay_max', '5',
+            '-reconnect_on_network_error', '1',
+            '-reconnect_on_http_error', '4xx,5xx'
+          ];
 
     activeCommand = ffmpeg(item.url)
       .inputOptions(inputOptions);
