@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import ffmpeg from 'fluent-ffmpeg';
+import { NextResponse } from 'next/server';
 import path from 'path';
 import os from 'os';
 
