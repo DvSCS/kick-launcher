@@ -66,19 +66,20 @@ const streamManager = {
     const targetUrl = `${cleanStreamUrl}/${cleanStreamKey}`;
     
     const isHls = item.url.includes('.m3u8') || item.url.includes('.m3u');
-    const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
+    const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
     
     const baseOptions = [
-      '-re', // Sempre ler em tempo real para não inundar o servidor RTMP (VODs causam loops se enviados muito rápido)
+      '-thread_queue_size', '512',
       '-user_agent', 'Mozilla/5.0',
       '-fflags', '+genpts+discardcorrupt+igndts'
     ];
 
     const inputOptions = item.isLoop 
-      ? ['-stream_loop', '-1', ...baseOptions] 
+      ? ['-re', '-stream_loop', '-1', ...baseOptions] 
       : isHls 
         ? [
             ...baseOptions,
+            ...(isVod ? ['-re'] : []),
             '-reconnect', '1', 
             '-reconnect_delay_max', '5',
             '-reconnect_on_network_error', '1',
@@ -86,6 +87,7 @@ const streamManager = {
           ]
         : [
             ...baseOptions,
+            ...(isVod ? ['-re'] : []),
             '-reconnect', '1', 
             '-reconnect_streamed', '1', 
             '-reconnect_delay_max', '5',
@@ -186,7 +188,7 @@ const streamManager = {
       .outputOptions([
         '-map 0:a?',
         '-c:v libx264',
-        '-preset veryfast',
+        '-preset ultrafast',
         '-profile:v main',
         '-b:v 3000k',
         '-maxrate 3000k',
