@@ -69,17 +69,17 @@ const streamManager = {
     const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
     
     const baseOptions = [
-      '-thread_queue_size', '512',
+      '-re', // OBRIGATÓRIO: Pacing em tempo real para não desconectar o RTMP por timeout ou burst
+      '-thread_queue_size', '1024',
       '-user_agent', 'Mozilla/5.0',
       '-fflags', '+genpts+discardcorrupt+igndts'
     ];
 
     const inputOptions = item.isLoop 
-      ? ['-re', '-stream_loop', '-1', ...baseOptions] 
+      ? ['-stream_loop', '-1', ...baseOptions] 
       : isHls 
         ? [
             ...baseOptions,
-            ...(isVod ? ['-re'] : []),
             '-reconnect', '1', 
             '-reconnect_delay_max', '5',
             '-reconnect_on_network_error', '1',
@@ -87,7 +87,6 @@ const streamManager = {
           ]
         : [
             ...baseOptions,
-            ...(isVod ? ['-re'] : []),
             '-reconnect', '1', 
             '-reconnect_streamed', '1', 
             '-reconnect_delay_max', '5',
