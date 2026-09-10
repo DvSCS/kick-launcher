@@ -101,7 +101,7 @@ export default function Home() {
     };
 
     checkStatus();
-    const interval = setInterval(checkStatus, 5000);
+    const interval = setInterval(checkStatus, 2000);
     return () => clearInterval(interval);
   }, [workerUrl]);
 
@@ -134,7 +134,7 @@ export default function Home() {
       } catch (err) {
         setWorkerStatus('invalid');
       }
-    }, 800); // 800ms debounce
+    }, 300); // 300ms debounce
 
     return () => clearTimeout(timer);
   }, [workerUrl]);

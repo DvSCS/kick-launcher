@@ -8,6 +8,7 @@ const ffmpegPath = path.join(__dirname, 'node_modules', 'ffmpeg-static', os.plat
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 let activeCommand = null;
+let relayCommand = null;
 let isStreaming = false;
 let currentPlaylist = [];
 let currentPlaylistIndex = 0;
@@ -39,6 +40,41 @@ const streamManager = {
     currentPlaylistIndex = 0;
     isStreaming = true;
 
+    if (!relayCommand) {
+      let cleanStreamUrl = _streamUrl.endsWith('/') ? _streamUrl.slice(0, -1) : _streamUrl;
+      if (!cleanStreamUrl.endsWith('/app')) {
+        cleanStreamUrl += '/app';
+      }
+      const cleanStreamKey = _streamKey.startsWith('/') ? _streamKey.slice(1) : _streamKey;
+      const rtmpTargetUrl = `${cleanStreamUrl}/${cleanStreamKey}`;
+
+      console.log('Iniciando Relay Process para manter a conexão RTMP...');
+      relayCommand = ffmpeg('udp://127.0.0.1:10000?fifo_size=5000000&overrun_nonfatal=1')
+        .inputOptions([
+          '-f mpegts',
+          '-use_wallclock_as_timestamps 1'
+        ])
+        .outputOptions([
+          '-c copy',
+          '-f flv'
+        ])
+        .on('start', cmd => console.log('Relay FFmpeg Started:', cmd))
+        .on('error', (err) => {
+           if (err.message && err.message.includes('SIGKILL')) return;
+           console.error('Relay FFmpeg Error:', err.message);
+           isStreaming = false;
+           relayCommand = null;
+           streamManager.stopStream();
+           _onError(err);
+        })
+        .on('end', () => {
+           console.log('Relay FFmpeg Ended.');
+        })
+        .output(rtmpTargetUrl);
+        
+      relayCommand.run();
+    }
+
     streamManager.playNextItem();
   },
 
@@ -58,12 +94,8 @@ const streamManager = {
     const item = currentPlaylist[currentPlaylistIndex];
     console.log(`Iniciando item da playlist [${currentPlaylistIndex + 1}/${currentPlaylist.length}]: ${item.url}`);
 
-    let cleanStreamUrl = _streamUrl.endsWith('/') ? _streamUrl.slice(0, -1) : _streamUrl;
-    if (!cleanStreamUrl.endsWith('/app')) {
-      cleanStreamUrl += '/app';
-    }
-    const cleanStreamKey = _streamKey.startsWith('/') ? _streamKey.slice(1) : _streamKey;
-    const targetUrl = `${cleanStreamUrl}/${cleanStreamKey}`;
+    // Output to the local UDP Relay
+    const targetUrl = 'udp://127.0.0.1:10000?pkt_size=1316';
     
     const isHls = item.url.includes('.m3u8') || item.url.includes('.m3u');
     const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
@@ -199,7 +231,7 @@ const streamManager = {
         '-c:a aac',
         '-b:a 160k',
         '-ar 44100',
-        '-f flv'
+        '-f mpegts'
       ])
       .on('start', (commandLine) => {
         console.log('FFmpeg Process Started:', commandLine);
@@ -257,12 +289,18 @@ const streamManager = {
       playlistTimeout = null;
     }
 
+    let killed = false;
     if (activeCommand) {
       activeCommand.kill('SIGKILL');
       activeCommand = null;
-      return true;
+      killed = true;
     }
-    return false;
+    if (relayCommand) {
+      relayCommand.kill('SIGKILL');
+      relayCommand = null;
+      killed = true;
+    }
+    return killed;
   },
 
   getStatus: () => {
@@ -305,9 +343,14 @@ const streamManager = {
 
 const cleanupProcess = () => {
   if (activeCommand) {
-    console.log('Painel fechado/reiniciado. Matando processo FFmpeg orfão...');
+    console.log('Matando processo FFmpeg Content...');
     activeCommand.kill('SIGKILL');
     activeCommand = null;
+  }
+  if (relayCommand) {
+    console.log('Matando processo FFmpeg Relay...');
+    relayCommand.kill('SIGKILL');
+    relayCommand = null;
   }
 };
 
