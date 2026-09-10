@@ -96,8 +96,17 @@ export default function Home() {
             "Bypass-Tunnel-Reminder": "true"
           }
         });
-        if (res.ok) setWorkerStatus('valid');
-        else setWorkerStatus('invalid');
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.isStreaming !== 'undefined') {
+            setWorkerStatus('valid');
+          } else {
+            setWorkerStatus('invalid');
+          }
+        } else {
+          setWorkerStatus('invalid');
+        }
       } catch (err) {
         setWorkerStatus('invalid');
       }
