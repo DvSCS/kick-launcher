@@ -604,7 +604,7 @@ export default function Home() {
                         onResizeStop={onResizeStop}
                         enableResizing={(layer.type === 'box' || layer.type === 'media') && activeLayerId === layer.id}
                         disableDragging={isStreaming && activeLayerId !== layer.id}
-                        onPointerDown={(e) => handleLayerPointerDown(e, layer.id)}
+                        onPointerDown={(e: any) => handleLayerPointerDown(e, layer.id)}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
                         <div style={styleObj}>
