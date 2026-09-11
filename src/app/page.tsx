@@ -589,10 +589,16 @@ export default function Home() {
                   };
                   
                   const onResizeStop = (e: any, direction: any, ref: any, delta: any, position: any) => {
-                     updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
-                     updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
                      updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
                      updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
+
+                     if (layer.type === 'box' || layer.type === 'media') {
+                        updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
+                        updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
+                     } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
+                        // O fontsize baseia-se na altura (height) da caixa redimensionada
+                        updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
+                     }
                   };
 
                   return (
@@ -603,7 +609,7 @@ export default function Home() {
                         position={{ x: previewX, y: previewY }}
                         onDragStop={onDragStop}
                         onResizeStop={onResizeStop}
-                        enableResizing={(layer.type === 'box' || layer.type === 'media') && activeLayerId === layer.id}
+                        enableResizing={activeLayerId === layer.id}
                         disableDragging={isStreaming && activeLayerId !== layer.id}
                         onPointerDown={(e: any) => handleLayerPointerDown(e, layer.id)}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
@@ -686,6 +692,13 @@ export default function Home() {
                                        <option value="verdana">Verdana</option>
                                        <option value="tahoma">Tahoma</option>
                                        <option value="comic">Comic Sans</option>
+                                       <option value="times">Times New Roman</option>
+                                       <option value="cour">Courier New</option>
+                                       <option value="georgia">Georgia</option>
+                                       <option value="trebuc">Trebuchet MS</option>
+                                       <option value="segoeui">Segoe UI</option>
+                                       <option value="calibri">Calibri</option>
+                                       <option value="consola">Consolas</option>
                                     </select>
                                  </div>
                               </>
