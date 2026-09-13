@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, Image as ImageIcon, Layout, X, Clock, Navigation, Square as BoxIcon, RefreshCw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, Image as ImageIcon, Layout, X, Clock, Navigation, Square as BoxIcon, RefreshCw, CheckCircle2, XCircle, Loader2, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rnd } from "react-rnd";
 
@@ -57,6 +57,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, layerId: string | null } | null>(null);
+
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -520,6 +527,10 @@ export default function Home() {
             <div 
                ref={canvasRef}
                className="relative bg-black border border-white/20 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden shrink-0"
+               onContextMenu={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, layerId: null });
+               }}
                style={{ 
                   width: PREVIEW_W, 
                   height: PREVIEW_H,
@@ -563,7 +574,7 @@ export default function Home() {
 
                   return (
                      <Rnd
-                        key={layer.id}
+                        key={layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee' ? `${layer.id}-${layer.fontsize}` : layer.id}
                         default={{
                            x: previewX,
                            y: previewY,
@@ -590,6 +601,12 @@ export default function Home() {
                         disableDragging={layer.type === 'marquee'}
                         lockAspectRatio={layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee'}
                         onPointerDown={(e: any) => handleLayerPointerDown(e, layer.id)}
+                        onContextMenu={(e: any) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           setActiveLayerId(layer.id);
+                           setContextMenu({ x: e.clientX, y: e.clientY, layerId: layer.id });
+                        }}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
                         <div style={styleObj}>
@@ -736,6 +753,45 @@ export default function Home() {
             )}
          </div>
       </div>
+
+      {contextMenu && (
+         <div 
+            className="fixed z-50 bg-[#121212] border border-white/10 rounded-lg shadow-xl py-1 min-w-[150px]"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+         >
+            {contextMenu.layerId ? (
+               <>
+                  <button onClick={() => {
+                     const layer = layers.find(l => l.id === contextMenu.layerId);
+                     if (layer) {
+                        const newLayer = { ...layer, id: Math.random().toString(36).substr(2, 9), x: layer.x + 50, y: layer.y + 50 };
+                        setLayers([...layers, newLayer]);
+                        setActiveLayerId(newLayer.id);
+                     }
+                  }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
+                     <Copy className="w-4 h-4" /> Duplicar
+                  </button>
+                  <button onClick={() => removeLayer(contextMenu.layerId!)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2">
+                     <Trash2 className="w-4 h-4" /> Deletar
+                  </button>
+               </>
+            ) : (
+               <>
+                  <div className="px-3 py-1 text-xs text-white/30 font-bold uppercase tracking-wider mb-1">Adicionar</div>
+                  <button onClick={() => addLayer('text')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
+                     <Type className="w-4 h-4" /> Novo Texto
+                  </button>
+                  <button onClick={() => addLayer('box')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
+                     <BoxIcon className="w-4 h-4" /> Nova Caixa
+                  </button>
+                  <button onClick={() => addLayer('media')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
+                     <ImageIcon className="w-4 h-4" /> Nova Mídia
+                  </button>
+               </>
+            )}
+         </div>
+      )}
+
     </main>
   );
 }
