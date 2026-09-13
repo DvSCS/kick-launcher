@@ -582,13 +582,13 @@ export default function Home() {
                   return (
                      <Rnd
                         key={layer.id}
-                        bounds="parent"
                         size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : { width: 'auto', height: 'auto' }}
                         position={{ x: previewX, y: previewY }}
                         onDrag={onDrag}
                         onResize={onResize}
                         enableResizing={activeLayerId === layer.id}
                         disableDragging={layer.type === 'marquee'}
+                        lockAspectRatio={layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee'}
                         onPointerDown={(e: any) => handleLayerPointerDown(e, layer.id)}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
