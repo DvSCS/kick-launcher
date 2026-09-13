@@ -537,6 +537,14 @@ export default function Home() {
                      justifyContent: 'center',
                   };
 
+                  if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
+                     styleObj = {
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                     };
+                  }
+
                   if (layer.type === 'box') {
                      let [color, alpha] = layer.color.split('@');
                      let alphaVal = alpha ? parseFloat(alpha) : 1;
@@ -575,7 +583,7 @@ export default function Home() {
                      <Rnd
                         key={layer.id}
                         bounds="parent"
-                        size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : undefined}
+                        size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : { width: 'auto', height: 'auto' }}
                         position={{ x: previewX, y: previewY }}
                         onDrag={onDrag}
                         onResize={onResize}
