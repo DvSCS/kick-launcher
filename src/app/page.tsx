@@ -601,6 +601,12 @@ export default function Home() {
                      }
                   };
 
+                  const onResize = (e: any, direction: any, ref: any, delta: any, position: any) => {
+                     if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
+                        updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
+                     }
+                  };
+
                   return (
                      <Rnd
                         key={layer.id}
@@ -608,6 +614,7 @@ export default function Home() {
                         size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : undefined}
                         position={{ x: previewX, y: previewY }}
                         onDragStop={onDragStop}
+                        onResize={onResize}
                         onResizeStop={onResizeStop}
                         enableResizing={activeLayerId === layer.id}
                         disableDragging={isStreaming && activeLayerId !== layer.id}
