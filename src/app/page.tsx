@@ -175,12 +175,13 @@ export default function Home() {
       id: Math.random().toString(),
       type,
       text: defaultText,
-      color: type === 'box' ? 'black@0.5' : 'white',
+      color: type === 'box' ? 'black@0.5' : '#ffffff',
       fontsize: '48',
       width: defaultWidth,
       height: defaultHeight,
       x: CANVAS_W / 2 - 100,
       y: CANVAS_H / 2 - 50,
+      font: 'arial',
       file: null
     };
     
@@ -574,7 +575,7 @@ export default function Home() {
 
                   return (
                      <Rnd
-                        key={layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee' ? `${layer.id}-${layer.fontsize}` : layer.id}
+                        key={layer.id}
                         default={{
                            x: previewX,
                            y: previewY,
@@ -607,7 +608,7 @@ export default function Home() {
                            setActiveLayerId(layer.id);
                            setContextMenu({ x: e.clientX, y: e.clientY, layerId: layer.id });
                         }}
-                        className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
+                        className={`select-none ${(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') ? '!w-max !h-max' : ''} ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
                         <div style={styleObj}>
                            {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
@@ -671,18 +672,22 @@ export default function Home() {
                               <>
                                  <div className="col-span-2 grid grid-cols-2 gap-4">
                                     <div>
-                                       <label className="block text-xs font-bold text-text-secondary mb-1">COR FFmpeg</label>
-                                       <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, { color: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder="white, red, #ff0000" />
+                                       <label className="block text-xs font-bold text-text-secondary mb-1">COR DO TEXTO</label>
+                                       <div className="flex gap-2">
+                                          <input type="color" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="h-9 w-9 bg-black border border-white/10 rounded cursor-pointer p-0" />
+                                          <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 text-sm focus:border-kick focus:outline-none uppercase" placeholder="#FFFFFF" />
+                                       </div>
                                     </div>
                                     <div>
                                        <label className="block text-xs font-bold text-text-secondary mb-1">TAM. FONTE (px)</label>
-                                       <input type="number" value={layer.fontsize} onChange={(e) => updateLayer(layer.id, { fontsize: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                       <input type="number" value={layer.fontsize} onChange={(e) => updateLayer(layer.id, 'fontsize', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
                                     </div>
                                  </div>
                                  <div className="col-span-2">
                                     <label className="block text-xs font-bold text-text-secondary mb-1">FONTE DO TEXTO</label>
-                                    <select value={layer.font || 'arial'} onChange={(e) => updateLayer(layer.id, { font: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-kick">
+                                    <select value={layer.font || 'arial'} onChange={(e) => updateLayer(layer.id, 'font', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-kick">
                                        <option value="arial">Arial</option>
+                                       <option value="ariblk">Arial Black</option>
                                        <option value="impact">Impact</option>
                                        <option value="verdana">Verdana</option>
                                        <option value="tahoma">Tahoma</option>
@@ -694,6 +699,8 @@ export default function Home() {
                                        <option value="segoeui">Segoe UI</option>
                                        <option value="calibri">Calibri</option>
                                        <option value="consola">Consolas</option>
+                                       <option value="pala">Palatino</option>
+                                       <option value="gara">Garamond</option>
                                     </select>
                                  </div>
                               </>
@@ -703,11 +710,11 @@ export default function Home() {
                               <>
                                  <div>
                                     <label className="block text-xs font-bold text-text-secondary mb-1">LARGURA (px)</label>
-                                    <input type="number" value={layer.width} onChange={(e) => updateLayer(layer.id, { width: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                    <input type="number" value={layer.width} onChange={(e) => updateLayer(layer.id, 'width', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
                                  </div>
                                  <div>
                                     <label className="block text-xs font-bold text-text-secondary mb-1">ALTURA (px)</label>
-                                    <input type="number" value={layer.height} onChange={(e) => updateLayer(layer.id, { height: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder={layer.type === 'box' ? "100" : "Auto"} />
+                                    <input type="number" value={layer.height} onChange={(e) => updateLayer(layer.id, 'height', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder={layer.type === 'box' ? "100" : "Auto"} />
                                  </div>
                               </>
                            )}
@@ -715,7 +722,7 @@ export default function Home() {
                            {layer.type === 'box' && (
                               <div className="col-span-2">
                                  <label className="block text-xs font-bold text-text-secondary mb-1">COR DA TARJA</label>
-                                 <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, { color: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder="black@0.5, red@1" />
+                                 <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" placeholder="black@0.5, red@1" />
                                  <span className="text-[10px] text-text-secondary mt-1">Sintaxe FFmpeg: cor@transparencia (ex: black@0.5)</span>
                               </div>
                            )}
@@ -723,20 +730,20 @@ export default function Home() {
                            {layer.type !== 'marquee' && (
                               <div className="col-span-2 grid grid-cols-2 gap-4 mt-2">
                                  <div>
-                                    <label className="block text-xs font-bold text-text-secondary mb-1">POSIÇÃO X (1920)</label>
-                                    <input type="number" value={layer.x} onChange={(e) => updateLayer(layer.id, { x: parseInt(e.target.value) })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                    <label className="block text-xs font-bold text-text-secondary mb-1">POSIÇÃO X (px)</label>
+                                    <input type="number" value={layer.x} onChange={(e) => updateLayer(layer.id, 'x', parseInt(e.target.value) || 0)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
                                  </div>
                                  <div>
-                                    <label className="block text-xs font-bold text-text-secondary mb-1">POSIÇÃO Y (1080)</label>
-                                    <input type="number" value={layer.y} onChange={(e) => updateLayer(layer.id, { y: parseInt(e.target.value) })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                    <label className="block text-xs font-bold text-text-secondary mb-1">POSIÇÃO Y (px)</label>
+                                    <input type="number" value={layer.y} onChange={(e) => updateLayer(layer.id, 'y', parseInt(e.target.value) || 0)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
                                  </div>
                               </div>
                            )}
 
                            {layer.type === 'marquee' && (
                               <div className="col-span-2 mt-2">
-                                 <label className="block text-xs font-bold text-text-secondary mb-1">ALTURA Y (1080)</label>
-                                 <input type="number" value={layer.y} onChange={(e) => updateLayer(layer.id, { y: parseInt(e.target.value) })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
+                                 <label className="block text-xs font-bold text-text-secondary mb-1">ALTURA Y (px)</label>
+                                 <input type="number" value={layer.y} onChange={(e) => updateLayer(layer.id, 'y', parseInt(e.target.value) || 0)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:border-kick focus:outline-none" />
                                  <span className="text-[10px] text-text-secondary mt-1">Letreiro rolante ignora a posição X, pois a move automaticamente.</span>
                               </div>
                            )}
