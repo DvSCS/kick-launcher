@@ -67,6 +67,7 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const rndRefs = useRef<{ [key: string]: any }>({});
 
   useEffect(() => {
     const saved = localStorage.getItem('kick_launcher_data');
@@ -576,6 +577,7 @@ export default function Home() {
                   return (
                      <Rnd
                         key={layer.id}
+                        ref={(c: any) => { if (c) rndRefs.current[layer.id] = c; }}
                         default={{
                            x: previewX,
                            y: previewY,
@@ -584,18 +586,31 @@ export default function Home() {
                         }}
                         onDragStop={(e: any, d: any) => {
                            if (layer.type === 'marquee') return;
-                           updateLayer(layer.id, 'x', Math.round(d.x * RATIO));
-                           updateLayer(layer.id, 'y', Math.round(d.y * RATIO));
+                           updateLayer(layer.id, {
+                              x: Math.round(d.x * RATIO),
+                              y: Math.round(d.y * RATIO)
+                           });
                         }}
                         onResizeStop={(e: any, direction: any, ref: any, delta: any, position: any) => {
-                           updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
-                           updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
-
                            if (layer.type === 'box' || layer.type === 'media') {
-                              updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
-                              updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
+                              updateLayer(layer.id, {
+                                 x: Math.round(position.x * RATIO),
+                                 y: Math.round(position.y * RATIO),
+                                 width: Math.round(ref.offsetWidth * RATIO).toString(),
+                                 height: Math.round(ref.offsetHeight * RATIO).toString()
+                              });
                            } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
-                              updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
+                              updateLayer(layer.id, {
+                                 x: Math.round(position.x * RATIO),
+                                 y: Math.round(position.y * RATIO),
+                                 fontsize: Math.round(ref.offsetHeight * RATIO).toString()
+                              });
+                              // Reseta o Rnd para "auto" após o resize para abraçar o texto novo sem bugar!
+                              setTimeout(() => {
+                                 if (rndRefs.current[layer.id]) {
+                                    rndRefs.current[layer.id].updateSize({ width: 'auto', height: 'auto' });
+                                 }
+                              }, 0);
                            }
                         }}
                         enableResizing={activeLayerId === layer.id}
@@ -608,7 +623,7 @@ export default function Home() {
                            setActiveLayerId(layer.id);
                            setContextMenu({ x: e.clientX, y: e.clientY, layerId: layer.id });
                         }}
-                        className={`select-none ${(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') ? '!w-max !h-max' : ''} ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
+                        className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
                         <div style={styleObj}>
                            {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
@@ -674,7 +689,7 @@ export default function Home() {
                                     <div>
                                        <label className="block text-xs font-bold text-text-secondary mb-1">COR DO TEXTO</label>
                                        <div className="flex gap-2">
-                                          <input type="color" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="h-9 w-9 bg-black border border-white/10 rounded cursor-pointer p-0" />
+                                          <input type="color" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="h-10 w-14 shrink-0 bg-black border border-white/10 rounded cursor-pointer p-0" />
                                           <input type="text" value={layer.color} onChange={(e) => updateLayer(layer.id, 'color', e.target.value)} className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 text-sm focus:border-kick focus:outline-none uppercase" placeholder="#FFFFFF" />
                                        </div>
                                     </div>
