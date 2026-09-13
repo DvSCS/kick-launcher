@@ -208,36 +208,6 @@ export default function Home() {
 
   const handleLayerPointerDown = (e: React.PointerEvent, layerId: string) => {
      setActiveLayerId(layerId);
-     const layer = layers.find(l => l.id === layerId);
-     if (!layer || !canvasRef.current || isStreaming || layer.type === 'marquee') return;
-
-     e.preventDefault();
-     const rect = canvasRef.current.getBoundingClientRect();
-     const startMouseX = e.clientX;
-     const startMouseY = e.clientY;
-     const startLayerX = layer.x;
-     const startLayerY = layer.y;
-
-     const handlePointerMove = (moveEv: PointerEvent) => {
-        const dx = moveEv.clientX - startMouseX;
-        const dy = moveEv.clientY - startMouseY;
-        
-        const ffmpegDx = dx * (CANVAS_W / rect.width);
-        const ffmpegDy = dy * (CANVAS_H / rect.height);
-        
-        updateLayer(layerId, {
-           x: Math.round(startLayerX + ffmpegDx),
-           y: Math.round(startLayerY + ffmpegDy)
-        });
-     };
-
-     const handlePointerUp = () => {
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-     };
-
-     window.addEventListener('pointermove', handlePointerMove);
-     window.addEventListener('pointerup', handlePointerUp);
   };
 
   const updatePlaylistItem = (id: string, field: keyof PlaylistItemUI, value: any) => {
@@ -583,12 +553,13 @@ export default function Home() {
                      previewH = parseInt(layer.height) / RATIO;
                   }
 
-                  const onDragStop = (e: any, d: any) => {
+                  const onDrag = (e: any, d: any) => {
+                     if (layer.type === 'marquee') return;
                      updateLayer(layer.id, 'x', Math.round(d.x * RATIO));
                      updateLayer(layer.id, 'y', Math.round(d.y * RATIO));
                   };
                   
-                  const onResizeStop = (e: any, direction: any, ref: any, delta: any, position: any) => {
+                  const onResize = (e: any, direction: any, ref: any, delta: any, position: any) => {
                      updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
                      updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
 
@@ -596,13 +567,6 @@ export default function Home() {
                         updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
                         updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
                      } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
-                        // O fontsize baseia-se na altura (height) da caixa redimensionada
-                        updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
-                     }
-                  };
-
-                  const onResize = (e: any, direction: any, ref: any, delta: any, position: any) => {
-                     if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
                         updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
                      }
                   };
@@ -613,11 +577,10 @@ export default function Home() {
                         bounds="parent"
                         size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : undefined}
                         position={{ x: previewX, y: previewY }}
-                        onDragStop={onDragStop}
+                        onDrag={onDrag}
                         onResize={onResize}
-                        onResizeStop={onResizeStop}
                         enableResizing={activeLayerId === layer.id}
-                        disableDragging={isStreaming && activeLayerId !== layer.id}
+                        disableDragging={layer.type === 'marquee'}
                         onPointerDown={(e: any) => handleLayerPointerDown(e, layer.id)}
                         className={`select-none ${activeLayerId === layer.id ? 'ring-2 ring-kick border-dashed z-20' : 'border border-transparent hover:border-white/20 z-10'}`}
                      >
