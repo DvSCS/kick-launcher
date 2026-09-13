@@ -561,31 +561,31 @@ export default function Home() {
                      previewH = parseInt(layer.height) / RATIO;
                   }
 
-                  const onDrag = (e: any, d: any) => {
-                     if (layer.type === 'marquee') return;
-                     updateLayer(layer.id, 'x', Math.round(d.x * RATIO));
-                     updateLayer(layer.id, 'y', Math.round(d.y * RATIO));
-                  };
-                  
-                  const onResize = (e: any, direction: any, ref: any, delta: any, position: any) => {
-                     updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
-                     updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
-
-                     if (layer.type === 'box' || layer.type === 'media') {
-                        updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
-                        updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
-                     } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
-                        updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
-                     }
-                  };
-
                   return (
                      <Rnd
                         key={layer.id}
-                        size={(layer.type === 'box' || layer.type === 'media') ? { width: previewW, height: previewH } : { width: 'auto', height: 'auto' }}
-                        position={{ x: previewX, y: previewY }}
-                        onDrag={onDrag}
-                        onResize={onResize}
+                        default={{
+                           x: previewX,
+                           y: previewY,
+                           width: (layer.type === 'box' || layer.type === 'media') ? previewW : 'auto',
+                           height: (layer.type === 'box' || layer.type === 'media') ? previewH : 'auto'
+                        }}
+                        onDragStop={(e: any, d: any) => {
+                           if (layer.type === 'marquee') return;
+                           updateLayer(layer.id, 'x', Math.round(d.x * RATIO));
+                           updateLayer(layer.id, 'y', Math.round(d.y * RATIO));
+                        }}
+                        onResizeStop={(e: any, direction: any, ref: any, delta: any, position: any) => {
+                           updateLayer(layer.id, 'x', Math.round(position.x * RATIO));
+                           updateLayer(layer.id, 'y', Math.round(position.y * RATIO));
+
+                           if (layer.type === 'box' || layer.type === 'media') {
+                              updateLayer(layer.id, 'width', Math.round(ref.offsetWidth * RATIO).toString());
+                              updateLayer(layer.id, 'height', Math.round(ref.offsetHeight * RATIO).toString());
+                           } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
+                              updateLayer(layer.id, 'fontsize', Math.round(ref.offsetHeight * RATIO).toString());
+                           }
+                        }}
                         enableResizing={activeLayerId === layer.id}
                         disableDragging={layer.type === 'marquee'}
                         lockAspectRatio={layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee'}
