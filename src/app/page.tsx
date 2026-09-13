@@ -600,10 +600,12 @@ export default function Home() {
                                  height: Math.round(ref.offsetHeight * RATIO).toString()
                               });
                            } else if (layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') {
+                              const currentFontSize = parseInt(layer.fontsize) || 48;
+                              const newFontSize = Math.max(12, currentFontSize + Math.round(delta.height * RATIO));
                               updateLayer(layer.id, {
                                  x: Math.round(position.x * RATIO),
                                  y: Math.round(position.y * RATIO),
-                                 fontsize: Math.round(ref.offsetHeight * RATIO).toString()
+                                 fontsize: newFontSize.toString()
                               });
                               // Reseta o Rnd para "auto" após o resize para abraçar o texto novo sem bugar!
                               setTimeout(() => {
@@ -627,7 +629,7 @@ export default function Home() {
                      >
                         <div style={styleObj}>
                            {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
-                              <div style={{ color: layer.color, fontFamily: layer.font || 'Arial', fontSize: `${Math.max(12, parseInt(layer.fontsize) / RATIO)}px`, whiteSpace: 'nowrap', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
+                              <div style={{ color: layer.color, fontFamily: layer.font || 'Arial', fontSize: `${Math.max(12, parseInt(layer.fontsize) / RATIO)}px`, lineHeight: 1, whiteSpace: 'nowrap', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
                                  {layer.type === 'clock' ? '12:00:00' : (layer.text || 'Texto Vazio')}
                               </div>
                            )}
