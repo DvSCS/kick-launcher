@@ -128,15 +128,28 @@ export const streamManager = {
 
     let inputIndex = 1; // 0 é o video principal
 
-    const injectShadowAndBorder = (overlay: any, opts: any) => {
-       if (overlay.shadowX || overlay.shadowY) {
-          opts.shadowcolor = overlay.shadowColor || 'black';
+    const applyOpacity = (hexOrNamedColor: string, opacitySlider?: number) => {
+       if (opacitySlider === undefined || opacitySlider === 100) return hexOrNamedColor;
+       const alpha = opacitySlider / 100;
+       return `${hexOrNamedColor}@${alpha}`;
+    };
+
+    const injectTextEffects = (overlay: any, opts: any) => {
+       opts.fontcolor = applyOpacity(overlay.color || 'white', overlay.opacity);
+
+       if (overlay.hasShadow && (overlay.shadowX || overlay.shadowY)) {
+          opts.shadowcolor = applyOpacity(overlay.shadowColor || 'black', overlay.opacity);
           opts.shadowx = overlay.shadowX || '0';
           opts.shadowy = overlay.shadowY || '0';
        }
-       if (overlay.borderWidth && overlay.borderWidth > 0) {
-          opts.bordercolor = overlay.borderColor || 'black';
+       if (overlay.hasBorder && overlay.borderWidth && overlay.borderWidth > 0) {
+          opts.bordercolor = applyOpacity(overlay.borderColor || 'black', overlay.opacity);
           opts.borderw = overlay.borderWidth;
+       }
+       if (overlay.hasBackground) {
+          opts.box = 1;
+          opts.boxcolor = applyOpacity(overlay.backgroundColor || 'black', overlay.opacity);
+          opts.boxborderw = overlay.backgroundPadding || 0;
        }
     };
 
@@ -172,11 +185,10 @@ export const streamManager = {
            const drawtextOpts: any = {
              text: text,
              fontsize: overlay.fontsize || '48',
-             fontcolor: overlay.color || 'white',
              x: overlay.x,
              y: overlay.y
            };
-           injectShadowAndBorder(overlay, drawtextOpts);
+           injectTextEffects(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
               options: drawtextOpts,
@@ -189,11 +201,10 @@ export const streamManager = {
            const drawtextOpts: any = {
              text: '%{localtime\\:%H\\\\:%M\\\\:%S}', // FFmpeg local time string
              fontsize: overlay.fontsize || '48',
-             fontcolor: overlay.color || 'white',
              x: overlay.x,
              y: overlay.y
            };
-           injectShadowAndBorder(overlay, drawtextOpts);
+           injectTextEffects(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
               options: drawtextOpts,
@@ -207,11 +218,10 @@ export const streamManager = {
            const drawtextOpts: any = {
              text: text,
              fontsize: overlay.fontsize || '48',
-             fontcolor: overlay.color || 'white',
              y: overlay.y,
              x: 'w-mod(t*150\\,w+tw)' // Scroll math (150 is speed)
            };
-           injectShadowAndBorder(overlay, drawtextOpts);
+           injectTextEffects(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
               options: drawtextOpts,
@@ -223,7 +233,14 @@ export const streamManager = {
        } else if (overlay.type === 'box') {
            const w = overlay.width || '200';
            const h = overlay.height || '100';
-           const c = overlay.color || 'black@0.5';
+           
+           // Support dynamic alpha replacement for solid boxes based on global opacity slider
+           let c = overlay.color || 'black@0.5';
+           if (overlay.opacity !== undefined && overlay.opacity !== 100) {
+              const baseColor = c.split('@')[0];
+              c = `${baseColor}@${overlay.opacity / 100}`;
+           }
+
            filters.push({
               filter: 'drawbox',
               options: {
@@ -238,6 +255,7 @@ export const streamManager = {
               outputs: `mix_${i}`
            });
            lastVideoMap = `mix_${i}`;
+
        }
     }
 
