@@ -28,6 +28,11 @@ interface LayerUI {
   y: number;
   font?: string;
   file: File | null;
+  shadowColor?: string;
+  shadowX?: number;
+  shadowY?: number;
+  borderColor?: string;
+  borderWidth?: number;
 }
 
 const CANVAS_W = 1920;
@@ -183,7 +188,12 @@ export default function Home() {
       x: CANVAS_W / 2 - 100,
       y: CANVAS_H / 2 - 50,
       font: 'arial',
-      file: null
+      file: null,
+      shadowColor: '#000000',
+      shadowX: 0,
+      shadowY: 0,
+      borderColor: '#000000',
+      borderWidth: 0
     };
     
     if (type === 'marquee') {
@@ -277,7 +287,12 @@ export default function Home() {
           width: l.width,
           height: l.height,
           x: l.x,
-          y: l.y
+          y: l.y,
+          shadowColor: l.shadowColor,
+          shadowX: l.shadowX,
+          shadowY: l.shadowY,
+          borderColor: l.borderColor,
+          borderWidth: l.borderWidth
        }));
        formData.append("overlayItems", JSON.stringify(mappedLayers));
 
@@ -653,7 +668,16 @@ export default function Home() {
                      >
                         <div style={styleObj}>
                            {(layer.type === 'text' || layer.type === 'clock' || layer.type === 'marquee') && (
-                              <div style={{ color: layer.color, fontFamily: layer.font || 'Arial', fontSize: `${Math.max(12, parseInt(layer.fontsize) / RATIO)}px`, lineHeight: 1, whiteSpace: 'nowrap', fontWeight: 'bold', textShadow: '2px 2px 0 #000' }}>
+                              <div style={{ 
+                                 color: layer.color, 
+                                 fontFamily: layer.font || 'Arial', 
+                                 fontSize: `${Math.max(12, parseInt(layer.fontsize) / RATIO)}px`, 
+                                 lineHeight: 1, 
+                                 whiteSpace: 'nowrap', 
+                                 fontWeight: 'bold', 
+                                 textShadow: (layer.shadowX || layer.shadowY) ? `${(layer.shadowX || 0)/RATIO}px ${(layer.shadowY || 0)/RATIO}px 0px ${layer.shadowColor || '#000'}` : 'none',
+                                 WebkitTextStroke: layer.borderWidth ? `${layer.borderWidth/RATIO}px ${layer.borderColor || '#000'}` : undefined
+                              }}>
                                  {layer.type === 'clock' ? '12:00:00' : (layer.text || 'Texto Vazio')}
                               </div>
                            )}
@@ -743,6 +767,39 @@ export default function Home() {
                                        <option value="pala">Palatino</option>
                                        <option value="gara">Garamond</option>
                                     </select>
+                                 </div>
+                                 <div className="col-span-2 grid grid-cols-2 gap-4 mt-2 border-t border-white/5 pt-4">
+                                    <div className="col-span-2">
+                                       <label className="block text-xs font-bold text-text-secondary mb-1">SOMBRA E BORDA</label>
+                                    </div>
+                                    <div>
+                                       <label className="block text-[10px] text-text-secondary mb-1">COR SOMBRA</label>
+                                       <div className="flex gap-2">
+                                         <input type="color" value={layer.shadowColor} onChange={(e) => updateFromSidebar(layer.id, { shadowColor: e.target.value })} className="h-8 w-8 shrink-0 bg-black border border-white/10 rounded cursor-pointer p-0" />
+                                         <input type="text" value={layer.shadowColor} onChange={(e) => updateFromSidebar(layer.id, { shadowColor: e.target.value })} className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 text-xs focus:border-kick focus:outline-none uppercase" placeholder="#000000" />
+                                       </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                       <div>
+                                          <label className="block text-[10px] text-text-secondary mb-1">S. X</label>
+                                          <input type="number" value={layer.shadowX} onChange={(e) => updateFromSidebar(layer.id, { shadowX: parseInt(e.target.value) || 0 })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs focus:border-kick focus:outline-none" />
+                                       </div>
+                                       <div>
+                                          <label className="block text-[10px] text-text-secondary mb-1">S. Y</label>
+                                          <input type="number" value={layer.shadowY} onChange={(e) => updateFromSidebar(layer.id, { shadowY: parseInt(e.target.value) || 0 })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs focus:border-kick focus:outline-none" />
+                                       </div>
+                                    </div>
+                                    <div>
+                                       <label className="block text-[10px] text-text-secondary mb-1">COR BORDA</label>
+                                       <div className="flex gap-2">
+                                         <input type="color" value={layer.borderColor} onChange={(e) => updateFromSidebar(layer.id, { borderColor: e.target.value })} className="h-8 w-8 shrink-0 bg-black border border-white/10 rounded cursor-pointer p-0" />
+                                         <input type="text" value={layer.borderColor} onChange={(e) => updateFromSidebar(layer.id, { borderColor: e.target.value })} className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 text-xs focus:border-kick focus:outline-none uppercase" placeholder="#000000" />
+                                       </div>
+                                    </div>
+                                    <div>
+                                       <label className="block text-[10px] text-text-secondary mb-1">ESPESSURA BORDA</label>
+                                       <input type="number" value={layer.borderWidth} onChange={(e) => updateFromSidebar(layer.id, { borderWidth: parseInt(e.target.value) || 0 })} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs focus:border-kick focus:outline-none" />
+                                    </div>
                                  </div>
                               </>
                            )}

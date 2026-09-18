@@ -128,6 +128,18 @@ export const streamManager = {
 
     let inputIndex = 1; // 0 é o video principal
 
+    const injectShadowAndBorder = (overlay: any, opts: any) => {
+       if (overlay.shadowX || overlay.shadowY) {
+          opts.shadowcolor = overlay.shadowColor || 'black';
+          opts.shadowx = overlay.shadowX || '0';
+          opts.shadowy = overlay.shadowY || '0';
+       }
+       if (overlay.borderWidth && overlay.borderWidth > 0) {
+          opts.bordercolor = overlay.borderColor || 'black';
+          opts.borderw = overlay.borderWidth;
+       }
+    };
+
     for (let i = 0; i < _overlayItems.length; i++) {
        const overlay = _overlayItems[i];
        
@@ -157,30 +169,34 @@ export const streamManager = {
 
        } else if (overlay.type === 'text' && overlay.text) {
            const text = overlay.text.replace(/:/g, '\\:');
+           const drawtextOpts: any = {
+             text: text,
+             fontsize: overlay.fontsize || '48',
+             fontcolor: overlay.color || 'white',
+             x: overlay.x,
+             y: overlay.y
+           };
+           injectShadowAndBorder(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
-              options: {
-                text: text,
-                fontsize: overlay.fontsize || '48',
-                fontcolor: overlay.color || 'white',
-                x: overlay.x,
-                y: overlay.y
-              },
+              options: drawtextOpts,
               inputs: lastVideoMap,
               outputs: `mix_${i}`
            });
            lastVideoMap = `mix_${i}`;
 
        } else if (overlay.type === 'clock') {
+           const drawtextOpts: any = {
+             text: '%{localtime\\:%H\\\\:%M\\\\:%S}', // FFmpeg local time string
+             fontsize: overlay.fontsize || '48',
+             fontcolor: overlay.color || 'white',
+             x: overlay.x,
+             y: overlay.y
+           };
+           injectShadowAndBorder(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
-              options: {
-                text: '%{localtime\\:%H\\\\:%M\\\\:%S}', // FFmpeg local time string
-                fontsize: overlay.fontsize || '48',
-                fontcolor: overlay.color || 'white',
-                x: overlay.x,
-                y: overlay.y
-              },
+              options: drawtextOpts,
               inputs: lastVideoMap,
               outputs: `mix_${i}`
            });
@@ -188,15 +204,17 @@ export const streamManager = {
 
        } else if (overlay.type === 'marquee' && overlay.text) {
            const text = overlay.text.replace(/:/g, '\\:');
+           const drawtextOpts: any = {
+             text: text,
+             fontsize: overlay.fontsize || '48',
+             fontcolor: overlay.color || 'white',
+             y: overlay.y,
+             x: 'w-mod(t*150\\,w+tw)' // Scroll math (150 is speed)
+           };
+           injectShadowAndBorder(overlay, drawtextOpts);
            filters.push({
               filter: 'drawtext',
-              options: {
-                text: text,
-                fontsize: overlay.fontsize || '48',
-                fontcolor: overlay.color || 'white',
-                y: overlay.y,
-                x: 'w-mod(t*150\\,w+tw)' // Scroll math (150 is speed)
-              },
+              options: drawtextOpts,
               inputs: lastVideoMap,
               outputs: `mix_${i}`
            });
