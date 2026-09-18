@@ -25,6 +25,17 @@ export interface OverlayItem {
   fontsize?: string | number;
   width?: string | number;
   height?: string | number;
+  opacity?: number;
+  hasShadow?: boolean;
+  shadowColor?: string;
+  shadowX?: number | string;
+  shadowY?: number | string;
+  hasBorder?: boolean;
+  borderColor?: string;
+  borderWidth?: number | string;
+  hasBackground?: boolean;
+  backgroundColor?: string;
+  backgroundPadding?: number | string;
 }
 
 let activeCommand: ffmpeg.FfmpegCommand | null = null;
