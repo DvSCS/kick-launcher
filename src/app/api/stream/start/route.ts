@@ -8,30 +8,28 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const streamUrl = formData.get('streamUrl') as string;
     const streamKey = formData.get('streamKey') as string;
-    const mode = formData.get('mode') as string;
+    const activePresetId = formData.get('activePresetId') as string;
+    const presetsStr = formData.get('presets') as string;
 
-    if (!streamUrl || !streamKey || !mode) {
+    if (!streamUrl || !streamKey || !presetsStr || !activePresetId) {
       return NextResponse.json({ error: 'Faltam dados obrigatórios' }, { status: 400 });
     }
 
     if (streamManager.getStatus().isStreaming) {
       return NextResponse.json({ error: 'Já existe uma transmissão em andamento.' }, { status: 400 });
     }
-
-    let playlist: { url: string, durationMs?: number, isLoop?: boolean }[] = [];
     
     // Process Overlay Items
     let overlayItems: any[] = [];
     const overlayItemsStr = formData.get('overlayItems') as string;
     
+    const tmpDir = path.join(process.cwd(), 'tmp');
+    await fs.mkdir(tmpDir, { recursive: true });
+
     if (overlayItemsStr) {
       try {
         overlayItems = JSON.parse(overlayItemsStr);
         
-        // Iterate through items to find and save attached media files
-        const tmpDir = path.join(process.cwd(), 'tmp');
-        await fs.mkdir(tmpDir, { recursive: true });
-
         for (let i = 0; i < overlayItems.length; i++) {
            const item = overlayItems[i];
            if (item.type === 'media') {
@@ -47,51 +45,57 @@ export async function POST(req: NextRequest) {
               }
            }
         }
-
       } catch (e) {
         console.warn('Failed to parse overlayItems', e);
       }
     }
 
-    if (mode === 'upload') {
-      const file = formData.get('video') as File;
-      if (!file) return NextResponse.json({ error: 'Arquivo de vídeo não enviado.' }, { status: 400 });
+    let presets: any[] = [];
+    try {
+      presets = JSON.parse(presetsStr);
+    } catch (e) {
+      return NextResponse.json({ error: 'Formato de presets inválido.' }, { status: 400 });
+    }
 
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      
-      const tmpDir = path.join(process.cwd(), 'tmp');
-      const filePath = path.join(tmpDir, 'video.mp4');
+    let globalFilters = { brightness: 0, contrast: 1, saturation: 1 };
+    const globalFiltersStr = formData.get('globalFilters') as string;
+    if (globalFiltersStr) {
+      try {
+        globalFilters = JSON.parse(globalFiltersStr);
+      } catch (e) {}
+    }
 
-      await fs.mkdir(tmpDir, { recursive: true });
-      await fs.writeFile(filePath, buffer);
-      
-      playlist.push({ url: filePath, isLoop: true });
-    } else if (mode === 'reback') {
-      const playlistStr = formData.get('playlist') as string;
-      if (!playlistStr) {
-         return NextResponse.json({ error: 'URL de retransmissão não informada.' }, { status: 400 });
-      } else {
-         try {
-            playlist = JSON.parse(playlistStr);
-         } catch (e) {
-            return NextResponse.json({ error: 'Formato de playlist inválido.' }, { status: 400 });
-         }
+    // Process Preset Items (Iterate to find Local Files and save them)
+    for (let p of presets) {
+      for (let item of p.items) {
+        if (item.type === 'file') {
+          const file = formData.get(`preset_file_${p.id}_${item.id}`) as File;
+          if (file) {
+             const arrayBuffer = await file.arrayBuffer();
+             const buffer = Buffer.from(arrayBuffer);
+             const ext = path.extname(file.name) || '.mp4';
+             const mediaPath = path.join(tmpDir, `preset_${p.id}_${item.id}${ext}`);
+             
+             await fs.writeFile(mediaPath, buffer);
+             item.url = mediaPath; // Update the URL to point to local file
+          }
+        }
       }
-      
-      if (playlist.length === 0) {
-        return NextResponse.json({ error: 'Playlist vazia.' }, { status: 400 });
-      }
-    } else {
-      return NextResponse.json({ error: 'Modo inválido.' }, { status: 400 });
+    }
+
+    const activePreset = presets.find(p => p.id === activePresetId);
+    if (!activePreset || activePreset.items.length === 0) {
+      return NextResponse.json({ error: 'Playlist ativa está vazia.' }, { status: 400 });
     }
 
     // Start stream
     streamManager.startStream(
-      playlist,
+      presets,
+      activePresetId,
       streamUrl,
       streamKey,
       overlayItems,
+      globalFilters,
       () => {
         console.log('Stream encerrou naturalmente');
       },

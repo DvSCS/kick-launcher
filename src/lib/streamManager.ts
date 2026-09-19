@@ -9,14 +9,23 @@ const ffmpegPath = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', os.
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 export interface PlaylistItem {
+  id?: string;
+  type?: 'url' | 'file';
   url: string;
   durationMs?: number; 
   isLoop?: boolean; 
 }
 
+export interface Preset {
+  id: string;
+  name: string;
+  actionOnEnd: 'loop' | 'next' | 'stop';
+  items: PlaylistItem[];
+}
+
 export interface OverlayItem {
   id: string;
-  type: 'text' | 'media' | 'clock' | 'marquee' | 'box';
+  type: 'text' | 'media' | 'clock' | 'marquee' | 'box' | 'blur';
   text?: string;
   mediaUrl?: string;
   x: string | number;
@@ -36,12 +45,21 @@ export interface OverlayItem {
   hasBackground?: boolean;
   backgroundColor?: string;
   backgroundPadding?: number | string;
+  blurAmount?: number;
+}
+
+interface GlobalFilters {
+  brightness: number;
+  contrast: number;
+  saturation: number;
 }
 
 let activeCommand: ffmpeg.FfmpegCommand | null = null;
 let isStreaming = false;
 let currentPlaylist: PlaylistItem[] = [];
 let currentPlaylistIndex = 0;
+let _presets: Preset[] = [];
+let _activePresetId = '';
 let playlistTimeout: NodeJS.Timeout | null = null;
 
 let _streamUrl = '';
@@ -49,13 +67,16 @@ let _streamKey = '';
 let _onEnd: () => void = () => {};
 let _onError: (err: any) => void = () => {};
 let _overlayItems: OverlayItem[] = [];
+let _globalFilters: GlobalFilters = { brightness: 0, contrast: 1, saturation: 1 };
 
 export const streamManager = {
   startStream: (
-    playlist: PlaylistItem[], 
+    presets: Preset[], 
+    activePresetId: string,
     streamUrl: string, 
     streamKey: string, 
     overlayItems: OverlayItem[],
+    globalFilters: GlobalFilters,
     onEnd: () => void, 
     onError: (err: any) => void
   ) => {
@@ -63,8 +84,13 @@ export const streamManager = {
       throw new Error("Já existe uma transmissão em andamento.");
     }
     
-    if (!playlist || playlist.length === 0) {
-      throw new Error("A playlist está vazia.");
+    _presets = presets || [];
+    _activePresetId = activePresetId;
+    _globalFilters = globalFilters || { brightness: 0, contrast: 1, saturation: 1 };
+
+    const initialPreset = _presets.find(p => p.id === _activePresetId);
+    if (!initialPreset || initialPreset.items.length === 0) {
+      throw new Error("O Preset ativo não possui mídias.");
     }
 
     _streamUrl = streamUrl;
@@ -73,7 +99,7 @@ export const streamManager = {
     _onEnd = onEnd;
     _onError = onError;
     
-    currentPlaylist = playlist;
+    currentPlaylist = initialPreset.items;
     currentPlaylistIndex = 0;
     isStreaming = true;
 
@@ -125,9 +151,7 @@ export const streamManager = {
     const filters: ffmpeg.FilterSpecification[] = [];
     let lastVideoMap = '0:v';
 
-    // Para o canvas bater exatamente, vamos forçar a scale do video base pra 1920x1080 antes de injetar qualquer coisa.
-    // Isso garante que todos os X e Y calculados no Canvas frontend façam sentido.
-    if (_overlayItems.length > 0) {
+    if (_overlayItems.length > 0 || _globalFilters.brightness !== 0 || _globalFilters.contrast !== 1 || _globalFilters.saturation !== 1) {
        filters.push({
           filter: 'scale',
           options: '1920:1080',
@@ -135,6 +159,20 @@ export const streamManager = {
           outputs: 'base_scaled'
        });
        lastVideoMap = 'base_scaled';
+       
+       const b = _globalFilters.brightness || 0;
+       const c = _globalFilters.contrast !== undefined ? _globalFilters.contrast : 1;
+       const s = _globalFilters.saturation !== undefined ? _globalFilters.saturation : 1;
+       
+       if (b !== 0 || c !== 1 || s !== 1) {
+          filters.push({
+             filter: 'eq',
+             options: `brightness=${b}:contrast=${c}:saturation=${s}`,
+             inputs: lastVideoMap,
+             outputs: 'base_video'
+          });
+          lastVideoMap = 'base_video';
+       }
     }
 
     let inputIndex = 1; // 0 é o video principal
@@ -245,7 +283,6 @@ export const streamManager = {
            const w = overlay.width || '200';
            const h = overlay.height || '100';
            
-           // Support dynamic alpha replacement for solid boxes based on global opacity slider
            let c = overlay.color || 'black@0.5';
            if (overlay.opacity !== undefined && overlay.opacity !== 100) {
               const baseColor = c.split('@')[0];
@@ -267,6 +304,30 @@ export const streamManager = {
            });
            lastVideoMap = `mix_${i}`;
 
+       } else if (overlay.type === 'blur') {
+           const blurAmount = overlay.blurAmount || 10;
+           const croppedName = `cropped_blur_${i}`;
+           const blurredName = `blurred_${i}`;
+           
+           filters.push({
+              filter: 'crop',
+              options: `${overlay.width || 100}:${overlay.height || 100}:${overlay.x}:${overlay.y}`,
+              inputs: lastVideoMap,
+              outputs: croppedName
+           });
+           filters.push({
+              filter: 'boxblur',
+              options: `${blurAmount}`,
+              inputs: croppedName,
+              outputs: blurredName
+           });
+           filters.push({
+              filter: 'overlay',
+              options: `x=${overlay.x}:y=${overlay.y}`,
+              inputs: [lastVideoMap, blurredName],
+              outputs: `mix_${i}`
+           });
+           lastVideoMap = `mix_${i}`;
        }
     }
 
@@ -337,6 +398,37 @@ export const streamManager = {
     }
 
     currentPlaylistIndex++;
+    
+    // Check if we reached the end of the current preset's playlist
+    if (currentPlaylistIndex >= currentPlaylist.length) {
+       const activePreset = _presets.find(p => p.id === _activePresetId);
+       const action = activePreset ? activePreset.actionOnEnd : 'stop';
+       
+       if (action === 'loop') {
+          console.log('Fim da playlist atingido. Fazendo Loop no preset atual...');
+          currentPlaylistIndex = 0;
+       } else if (action === 'next') {
+          const currentPresetIndex = _presets.findIndex(p => p.id === _activePresetId);
+          if (currentPresetIndex !== -1 && currentPresetIndex < _presets.length - 1) {
+             const nextPreset = _presets[currentPresetIndex + 1];
+             console.log(`Fim da playlist atingido. Puxando próximo preset: ${nextPreset.name}`);
+             _activePresetId = nextPreset.id;
+             currentPlaylist = nextPreset.items;
+             currentPlaylistIndex = 0;
+          } else {
+             console.log('Fim de todos os presets atingido. Parando transmissão...');
+             isStreaming = false;
+             _onEnd();
+             return;
+          }
+       } else {
+          console.log('Fim da playlist atingido. Parando transmissão conforme configurado...');
+          isStreaming = false;
+          _onEnd();
+          return;
+       }
+    }
+
     streamManager.playNextItem();
   },
 

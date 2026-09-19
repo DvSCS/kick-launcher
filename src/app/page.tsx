@@ -6,14 +6,22 @@ import { Play, Square, UploadCloud, AlertCircle, Plus, Trash2, ListVideo, Type, 
 import { motion, AnimatePresence } from "framer-motion";
 import { Rnd } from "react-rnd";
 
-type StreamMode = 'upload' | 'reback';
-type LayerType = 'text' | 'media' | 'clock' | 'marquee' | 'box';
+type LayerType = 'text' | 'media' | 'clock' | 'marquee' | 'box' | 'blur' | 'progress';
 
 interface PlaylistItemUI {
   id: string;
+  type: 'url' | 'file';
   url: string;
+  file: File | null;
   duration: number;
   unit: 'min' | 'h';
+}
+
+interface PresetUI {
+  id: string;
+  name: string;
+  actionOnEnd: 'loop' | 'next' | 'stop';
+  items: PlaylistItemUI[];
 }
 
 interface LayerUI {
@@ -39,6 +47,14 @@ interface LayerUI {
   hasBackground?: boolean;
   backgroundColor?: string;
   backgroundPadding?: number;
+  blurAmount?: number;
+  progressDuration?: number;
+}
+
+interface GlobalFiltersUI {
+  brightness: number;
+  contrast: number;
+  saturation: number;
 }
 
 const CANVAS_W = 1920;
@@ -53,12 +69,16 @@ export default function Home() {
   const [workerUrl, setWorkerUrl] = useState("");
   const [workerStatus, setWorkerStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   
-  const [mode, setMode] = useState<StreamMode>('upload');
-  const [file, setFile] = useState<File | null>(null);
-  
-  const [playlist, setPlaylist] = useState<PlaylistItemUI[]>([
-    { id: '1', url: '', duration: 1, unit: 'h' }
+  const [presets, setPresets] = useState<PresetUI[]>([
+    {
+      id: '1',
+      name: 'Preset 1',
+      actionOnEnd: 'loop',
+      items: [{ id: '1', type: 'url', url: '', file: null, duration: 1, unit: 'h' }]
+    }
   ]);
+  const [activePresetId, setActivePresetId] = useState<string>('1');
+  const [globalFilters, setGlobalFilters] = useState<GlobalFiltersUI>({ brightness: 0, contrast: 1, saturation: 1 });
   
   const [layers, setLayers] = useState<LayerUI[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
@@ -88,8 +108,11 @@ export default function Home() {
         if (data.streamUrl) setStreamUrl(data.streamUrl);
         if (data.streamKey) setStreamKey(data.streamKey);
         if (data.workerUrl) setWorkerUrl(data.workerUrl);
-        if (data.mode) setMode(data.mode);
-        if (data.playlist) setPlaylist(data.playlist);
+        if (data.presets) {
+          setPresets(data.presets);
+          if (data.presets.length > 0) setActivePresetId(data.presets[0].id);
+        }
+        if (data.globalFilters) setGlobalFilters(data.globalFilters);
       } catch (e) {}
     }
   }, []);
@@ -99,10 +122,10 @@ export default function Home() {
       streamUrl,
       streamKey,
       workerUrl,
-      mode,
-      playlist
+      presets,
+      globalFilters
     }));
-  }, [streamUrl, streamKey, workerUrl, mode, playlist]);
+  }, [streamUrl, streamKey, workerUrl, presets, globalFilters]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -164,11 +187,38 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [workerUrl]);
 
-  const handleBaseVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setError(null);
-    }
+  const addPlaylistItem = (type: 'url' | 'file') => {
+    setPresets(presets.map(p => {
+      if (p.id !== activePresetId) return p;
+      return {
+        ...p,
+        items: [...p.items, { id: Math.random().toString(), type, url: '', file: null, duration: 1, unit: 'h' }]
+      };
+    }));
+  };
+
+  const updatePlaylistItem = (itemId: string, field: keyof PlaylistItemUI, value: any) => {
+    setPresets(presets.map(p => {
+      if (p.id !== activePresetId) return p;
+      return {
+        ...p,
+        items: p.items.map(item => item.id === itemId ? { ...item, [field]: value } : item)
+      };
+    }));
+  };
+
+  const removePlaylistItem = (itemId: string) => {
+    setPresets(presets.map(p => {
+      if (p.id !== activePresetId) return p;
+      return {
+        ...p,
+        items: p.items.filter(item => item.id !== itemId)
+      };
+    }));
+  };
+
+  const updateActivePresetField = (field: keyof PresetUI, value: any) => {
+    setPresets(presets.map(p => p.id === activePresetId ? { ...p, [field]: value } : p));
   };
 
   const addLayer = (type: LayerType) => {
@@ -205,7 +255,9 @@ export default function Home() {
       hasBorder: false,
       hasBackground: false,
       backgroundColor: '#000000',
-      backgroundPadding: 5
+      backgroundPadding: 5,
+      blurAmount: type === 'blur' ? 10 : undefined,
+      progressDuration: type === 'progress' ? 3600 : undefined
     };
     
     if (type === 'marquee') {
@@ -293,18 +345,15 @@ export default function Home() {
      setActiveLayerId(layerId);
   };
 
-  const updatePlaylistItem = (id: string, field: keyof PlaylistItemUI, value: any) => {
-    setPlaylist(playlist.map(p => p.id === id ? { ...p, [field]: value } : p));
-  };
-
   const startStream = async () => {
     if (!streamUrl || !streamKey) {
       setError("Preencha a URL e a Key da Kick.");
       return;
     }
 
-    if (mode === 'upload' && !file) {
-      setError("Selecione um arquivo MP4 para a live base.");
+    const activePreset = presets.find(p => p.id === activePresetId);
+    if (!activePreset || activePreset.items.length === 0) {
+      setError("Adicione pelo menos uma mídia na playlist do Preset atual.");
       return;
     }
 
@@ -314,7 +363,6 @@ export default function Home() {
     const formData = new FormData();
     formData.append("streamUrl", streamUrl);
     formData.append("streamKey", streamKey);
-    formData.append("mode", mode);
 
     if (layers.length > 0) {
        const mappedLayers = layers.map(l => ({
@@ -338,7 +386,9 @@ export default function Home() {
           hasBorder: l.hasBorder,
           hasBackground: l.hasBackground,
           backgroundColor: l.backgroundColor,
-          backgroundPadding: l.backgroundPadding
+          backgroundPadding: l.backgroundPadding,
+          blurAmount: l.blurAmount,
+          progressDuration: l.progressDuration
        }));
        formData.append("overlayItems", JSON.stringify(mappedLayers));
 
@@ -349,22 +399,32 @@ export default function Home() {
        });
     }
     
-    if (mode === 'upload' && file) {
-      formData.append("video", file);
-    } else if (mode === 'reback') {
-      const validItems = playlist.filter(p => p.url.trim() !== '');
-      if (validItems.length === 0) {
-        setError("Adicione pelo menos um link na playlist.");
-        setIsLoading(false);
-        return;
-      }
-      const finalPlaylist = validItems.map(p => ({
-        url: p.url,
-        durationMs: p.duration * (p.unit === 'h' ? 3600000 : 60000),
-        isLoop: false
-      }));
-      formData.append("playlist", JSON.stringify(finalPlaylist));
-    }
+    // We will send the full presets state to the backend
+    // But we need to separate the File objects from the JSON structure
+    const presetsToSend = presets.map(p => ({
+      id: p.id,
+      name: p.name,
+      actionOnEnd: p.actionOnEnd,
+      items: p.items.map(item => ({
+        id: item.id,
+        type: item.type,
+        url: item.url,
+        durationMs: item.duration * (item.unit === 'h' ? 3600000 : 60000)
+      }))
+    }));
+
+    formData.append("presets", JSON.stringify(presetsToSend));
+    formData.append("activePresetId", activePresetId);
+    formData.append("globalFilters", JSON.stringify(globalFilters));
+
+    // Append video files
+    presets.forEach(p => {
+      p.items.forEach(item => {
+        if (item.type === 'file' && item.file) {
+          formData.append(`preset_file_${p.id}_${item.id}`, item.file);
+        }
+      });
+    });
 
     if (workerStatus !== 'valid') {
       setError("Você precisa conectar um Link de Motor válido antes de iniciar a live.");
@@ -432,8 +492,19 @@ export default function Home() {
           font: l.font,
           width: l.width,
           height: l.height,
-          x: l.x,
-          y: l.y
+          shadowColor: l.shadowColor,
+          shadowX: l.shadowX,
+          shadowY: l.shadowY,
+          borderColor: l.borderColor,
+          borderWidth: l.borderWidth,
+          opacity: l.opacity,
+          hasShadow: l.hasShadow,
+          hasBorder: l.hasBorder,
+          hasBackground: l.hasBackground,
+          backgroundColor: l.backgroundColor,
+          backgroundPadding: l.backgroundPadding,
+          blurAmount: l.blurAmount,
+          progressDuration: l.progressDuration
        }));
        formData.append("overlayItems", JSON.stringify(mappedLayers));
 
@@ -523,39 +594,93 @@ export default function Home() {
                <div className="h-px bg-[#1e1e1e]"></div>
 
                <div>
-                  <div className="flex gap-1 mb-3 bg-[#111] p-0.5 rounded-lg">
-                     <button onClick={() => setMode('upload')} disabled={isStreaming} className={`flex-1 py-2 text-[12px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${mode === 'upload' ? 'bg-[var(--color-bg-panel)] text-white' : 'text-[#555] hover:text-white'}`}>
-                        <UploadCloud className="w-3.5 h-3.5" /> Arquivo local
-                     </button>
-                     <button onClick={() => setMode('reback')} disabled={isStreaming} className={`flex-1 py-2 text-[12px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${mode === 'reback' ? 'bg-[var(--color-bg-panel)] text-white' : 'text-[#555] hover:text-white'}`}>
-                        <ListVideo className="w-3.5 h-3.5" /> Links IPTV
+                  <div className="flex gap-2 mb-3 bg-[#111] p-1 rounded-lg overflow-x-auto no-scrollbar">
+                     {presets.map(p => (
+                        <button key={p.id} onClick={() => setActivePresetId(p.id)} disabled={isStreaming} className={`px-4 py-1.5 text-[12px] font-medium rounded-md transition-colors whitespace-nowrap ${p.id === activePresetId ? 'bg-[var(--color-bg-panel)] text-white shadow-sm' : 'text-[#555] hover:text-white'}`}>
+                           {p.name}
+                        </button>
+                     ))}
+                     <button onClick={() => setPresets([...presets, { id: Math.random().toString(), name: `Preset ${presets.length + 1}`, actionOnEnd: 'loop', items: [] }])} disabled={isStreaming} className="px-3 py-1.5 text-[12px] font-medium text-[#555] hover:text-white transition-colors flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Novo
                      </button>
                   </div>
 
-                  {mode === 'upload' ? (
-                     <div onClick={() => !isStreaming && fileInputRef.current?.click()} className={`flex flex-col items-center justify-center w-full h-28 border border-dashed rounded-lg transition-colors ${file ? 'border-kick/40 bg-kick/5' : 'border-[#252525] bg-[#111] hover:border-[#333]'} cursor-pointer`}>
-                        <input type="file" accept="video/mp4" className="hidden" ref={fileInputRef} onChange={handleBaseVideoChange} disabled={isStreaming} />
-                        <span className="text-[12px] font-medium text-[#888]">{file ? file.name : 'Clique para selecionar o vídeo base (.mp4)'}</span>
-                     </div>
-                  ) : (
-                     <div className="space-y-2">
-                        {playlist.map((item, index) => (
-                           <div key={item.id} className="bg-[#111] border border-[#222] p-2.5 rounded-lg flex gap-2">
-                              <input type="text" value={item.url} onChange={(e) => updatePlaylistItem(item.id, 'url', e.target.value)} disabled={isStreaming} className="flex-1 bg-transparent text-sm text-white focus:outline-none" placeholder="http://iptv.com/live.ts" />
-                              
-                              {playlist.length > 1 && (
-                                 <div className="flex items-center gap-1.5 shrink-0 border-l border-[#222] pl-2">
-                                    <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-14 bg-[#0e0e0e] border border-[#222] rounded px-2 py-1 text-sm text-center" />
-                                    <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-1.5 py-1 text-sm">
-                                       <option value="min">Min</option><option value="h">Hrs</option>
-                                    </select>
-                                 </div>
-                              )}
+                  {(() => {
+                     const activePreset = presets.find(p => p.id === activePresetId);
+                     if (!activePreset) return null;
+
+                     return (
+                        <div className="space-y-3">
+                           {/* Loop Logic Config */}
+                           <div className="flex justify-between items-center bg-[#111] border border-[#222] p-2.5 rounded-lg">
+                              <span className="text-[11px] font-medium text-[#666]">Ação ao final da playlist:</span>
+                              <select value={activePreset.actionOnEnd} onChange={(e) => updateActivePresetField('actionOnEnd', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-kick">
+                                 <option value="loop">Fazer Loop (Voltar ao início)</option>
+                                 <option value="next">Pular para Próximo Preset</option>
+                                 <option value="stop">Parar Transmissão</option>
+                              </select>
                            </div>
-                        ))}
-                        <button onClick={() => setPlaylist([...playlist, { id: Math.random().toString(), url: '', duration: 1, unit: 'h' }])} disabled={isStreaming} className="w-full py-2.5 border border-dashed border-[#252525] rounded-lg text-[#555] hover:text-white hover:border-[#333] flex justify-center gap-1.5 text-[12px] transition-colors"><Plus className="w-3.5 h-3.5"/> Adicionar mídia</button>
+
+                           <div className="space-y-2">
+                              {activePreset.items.map((item, index) => (
+                                 <div key={item.id} className="bg-[#111] border border-[#222] p-2.5 rounded-lg flex items-center gap-2">
+                                    {item.type === 'url' ? (
+                                       <input type="text" value={item.url} onChange={(e) => updatePlaylistItem(item.id, 'url', e.target.value)} disabled={isStreaming} className="flex-1 bg-transparent text-sm text-white focus:outline-none min-w-0" placeholder="http://iptv.com/live.ts" />
+                                    ) : (
+                                       <div className="flex-1 min-w-0 flex items-center relative">
+                                          <input type="file" accept="video/mp4" onChange={(e) => e.target.files && e.target.files.length > 0 && updatePlaylistItem(item.id, 'file', e.target.files[0])} disabled={isStreaming} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                          <div className="truncate text-sm text-white/80 font-medium">
+                                             {item.file ? item.file.name : 'Clique para selecionar um Arquivo Local (.mp4)'}
+                                          </div>
+                                       </div>
+                                    )}
+                                    
+                                    <div className="flex items-center gap-1.5 shrink-0 border-l border-[#222] pl-2">
+                                       <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-12 bg-[#0e0e0e] border border-[#222] rounded px-1.5 py-1 text-xs text-center" />
+                                       <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-1 py-1 text-xs text-white">
+                                          <option value="min">Min</option><option value="h">Hrs</option>
+                                       </select>
+                                       <button onClick={() => removePlaylistItem(item.id)} disabled={isStreaming} className="p-1.5 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors ml-1">
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                       </button>
+                                    </div>
+                                 </div>
+                              ))}
+
+                              <div className="flex gap-2">
+                                 <button onClick={() => addPlaylistItem('url')} disabled={isStreaming} className="flex-1 py-2.5 border border-dashed border-[#252525] rounded-lg text-[#555] hover:text-white hover:border-[#333] flex justify-center items-center gap-1.5 text-[11px] transition-colors"><ListVideo className="w-3 h-3"/> + Link IPTV</button>
+                                 <button onClick={() => addPlaylistItem('file')} disabled={isStreaming} className="flex-1 py-2.5 border border-dashed border-[#252525] rounded-lg text-[#555] hover:text-white hover:border-[#333] flex justify-center items-center gap-1.5 text-[11px] transition-colors"><UploadCloud className="w-3 h-3"/> + Arquivo Local</button>
+                              </div>
+                           </div>
+                        </div>
+                     );
+                  })()}
+               </div>
+
+               <div className="h-px bg-[#1e1e1e]"></div>
+
+               {/* GLOBAL FILTERS */}
+               <div>
+                  <div className="flex justify-between items-end mb-2">
+                     <label className="block text-[11px] font-medium text-[#666]">Filtros de Imagem (Global)</label>
+                  </div>
+                  <div className="bg-[#111] border border-[#222] p-3 rounded-lg space-y-3">
+                     <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-[#555] w-12 shrink-0">Brilho</span>
+                        <input type="range" min="-1" max="1" step="0.1" value={globalFilters.brightness} onChange={(e) => setGlobalFilters({...globalFilters, brightness: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.brightness}</span>
                      </div>
-                  )}
+                     <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-[#555] w-12 shrink-0">Contraste</span>
+                        <input type="range" min="-2" max="2" step="0.1" value={globalFilters.contrast} onChange={(e) => setGlobalFilters({...globalFilters, contrast: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.contrast}</span>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-[#555] w-12 shrink-0">Saturação</span>
+                        <input type="range" min="0" max="3" step="0.1" value={globalFilters.saturation} onChange={(e) => setGlobalFilters({...globalFilters, saturation: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.saturation}</span>
+                     </div>
+                  </div>
                </div>
 
                <div className="h-px bg-[#1e1e1e]"></div>
@@ -603,6 +728,7 @@ export default function Home() {
                <button onClick={() => addLayer('clock')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><Clock className="w-3 h-3"/> Relógio</button>
                <button onClick={() => addLayer('media')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><ImageIcon className="w-3 h-3"/> Mídia</button>
                <button onClick={() => addLayer('box')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><BoxIcon className="w-3 h-3"/> Caixa</button>
+               <button onClick={() => addLayer('blur')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><ImageIcon className="w-3 h-3"/> Desfoque (Blur)</button>
             </div>
 
             <div 
@@ -645,12 +771,18 @@ export default function Home() {
                      styleObj.backgroundColor = color === 'black' ? `rgba(0,0,0,${alphaVal})` : layer.color; 
                   }
 
+                  if (layer.type === 'blur') {
+                     styleObj.backdropFilter = `blur(${layer.blurAmount || 10}px)`;
+                     styleObj.WebkitBackdropFilter = `blur(${layer.blurAmount || 10}px)`;
+                     styleObj.backgroundColor = 'rgba(255,255,255,0.05)';
+                  }
+
                   const previewX = layer.x / RATIO;
                   const previewY = layer.y / RATIO;
                   
                   let previewW = 0;
                   let previewH = 0;
-                  if (layer.type === 'box' || layer.type === 'media') {
+                  if (layer.type === 'box' || layer.type === 'media' || layer.type === 'blur') {
                      previewW = parseInt(layer.width) / RATIO;
                      previewH = parseInt(layer.height) / RATIO;
                   }
@@ -662,8 +794,8 @@ export default function Home() {
                         default={{
                            x: previewX,
                            y: previewY,
-                           width: (layer.type === 'box' || layer.type === 'media') ? previewW : 'auto',
-                           height: (layer.type === 'box' || layer.type === 'media') ? previewH : 'auto'
+                           width: (layer.type === 'box' || layer.type === 'media' || layer.type === 'blur') ? previewW : 'auto',
+                           height: (layer.type === 'box' || layer.type === 'media' || layer.type === 'blur') ? previewH : 'auto'
                         }}
                         onDragStop={(e: any, d: any) => {
                            if (layer.type === 'marquee') return;
@@ -673,7 +805,7 @@ export default function Home() {
                            });
                         }}
                         onResizeStop={(e: any, direction: any, ref: any, delta: any, position: any) => {
-                           if (layer.type === 'box' || layer.type === 'media') {
+                           if (layer.type === 'box' || layer.type === 'media' || layer.type === 'blur') {
                               updateLayer(layer.id, {
                                  x: Math.round(position.x * RATIO),
                                  y: Math.round(position.y * RATIO),
@@ -804,6 +936,12 @@ export default function Home() {
                                         <input type="file" accept="image/*,video/mp4" onChange={(e) => e.target.files && updateLayer(layer.id, { file: e.target.files[0] })} className="w-full bg-[#111] border border-[#1e1e1e] rounded-md p-2 text-[12px] text-[#888] file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:bg-kick file:text-black file:text-[11px] file:font-medium hover:file:bg-kick/85" />
                                     </div>
                                 )}
+                                {layer.type === 'blur' && (
+                                    <div>
+                                        <span className="block text-[11px] text-[#666] mb-1.5">Intensidade do Desfoque</span>
+                                        <input type="range" min="1" max="50" value={layer.blurAmount || 10} onChange={(e) => updateFromSidebar(layer.id, { blurAmount: parseInt(e.target.value) })} className="w-full accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -817,7 +955,7 @@ export default function Home() {
                             </div>
                             
                             <div className="grid grid-cols-2 gap-2">
-                                {(layer.type === 'media' || layer.type === 'box') && (
+                                {(layer.type === 'media' || layer.type === 'box' || layer.type === 'blur') && (
                                     <>
                                         <div>
                                             <span className="block text-[10px] text-[#555] mb-1">W</span>
