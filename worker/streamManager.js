@@ -136,22 +136,29 @@ const streamManager = {
     // Para lives puras (.m3u8 que não são VOD), NÃO usamos -re, pois o FFmpeg precisa puxar na velocidade que a fonte gera.
     // Usar -re em uma live HLS verdadeira causa stuttering por dessincronia.
     // Mas para VODs ou arquivos locais, PRECISAMOS do -re para não processar 1 hora de vídeo em 1 segundo.
+    const isLocal = item.url.startsWith('C:\\') || item.url.startsWith('/') || item.url.includes('tmp\\preset_') || item.url.includes('tmp/preset_');
     const useRe = isVod || item.isLoop;
 
     const baseOptions = [
       '-thread_queue_size', '1024',
-      '-user_agent', 'Mozilla/5.0',
       '-fflags', '+genpts+discardcorrupt+igndts'
     ];
+    
+    if (!isLocal) {
+      baseOptions.push('-user_agent', 'Mozilla/5.0');
+    }
     
     // Check if we should loop at the ffmpeg level to prevent stream drops
     // We do this if item.isLoop is true OR if it's the only item in a looping preset
     const activePreset = _presets.find(p => p.id === _activePresetId);
     const action = activePreset ? activePreset.actionOnEnd : 'stop';
     const isOnlyItemLoop = (action === 'loop' && currentPlaylist.length === 1 && (!item.durationMs || item.durationMs === 0));
+    const isLoopingLocal = isLocal && (item.isLoop || isOnlyItemLoop);
     
-    if (isVod && (item.isLoop || isOnlyItemLoop)) {
+    if (isLoopingLocal) {
       baseOptions.unshift('-stream_loop', '-1');
+    } else if (useRe) {
+      baseOptions.unshift('-re');
     }
 
     const inputOptions = isHls 
@@ -344,13 +351,15 @@ const streamManager = {
       lastVideoMap = outputName;
     });
 
-    // Always apply realtime filter to pace the stream correctly, regardless of source
-    filters.push({
-      filter: 'realtime',
-      inputs: lastVideoMap,
-      outputs: 'paced_video'
-    });
-    lastVideoMap = 'paced_video';
+    if (isLoopingLocal) {
+       // Apply realtime filter to pace the stream correctly when looping (since we disabled -re)
+       filters.push({
+         filter: 'realtime',
+         inputs: lastVideoMap,
+         outputs: 'paced_video'
+       });
+       lastVideoMap = 'paced_video';
+    }
 
     if (filters.length > 0) {
       activeCommand.complexFilter(filters, lastVideoMap);
@@ -373,8 +382,10 @@ const streamManager = {
       '-f mpegts'
     ];
 
-    // Always pace the audio as well to maintain sync
-    outputOptions.splice(outputOptions.indexOf('-c:a aac') + 1, 0, '-af', 'arealtime');
+    if (isLoopingLocal) {
+      // Also pace the audio as well to maintain sync
+      outputOptions.splice(outputOptions.indexOf('-c:a aac') + 1, 0, '-af', 'arealtime');
+    }
 
     activeCommand.outputOptions(outputOptions)
       .on('start', (commandLine) => {
