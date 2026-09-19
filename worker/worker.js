@@ -26,7 +26,7 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
     let activePresetId = body.activePresetId || '';
 
     if (mode === 'upload') {
-      const baseVideo = req.files.find(f => f.fieldname === 'video');
+      const baseVideo = (req.files || []).find(f => f.fieldname === 'video');
       if (baseVideo) {
         const ext = path.extname(baseVideo.originalname) || '.mp4';
         const newPath = path.join(__dirname, 'tmp', `base_video_${Date.now()}${ext}`);
@@ -49,7 +49,7 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
       for (let p of presets) {
         for (let item of p.items) {
           if (item.type === 'file') {
-            const file = req.files.find(f => f.fieldname === `preset_file_${p.id}_${item.id}`);
+            const file = (req.files || []).find(f => f.fieldname === `preset_file_${p.id}_${item.id}`);
             if (file) {
               const ext = path.extname(file.originalname) || '.mp4';
               const newPath = path.join(__dirname, 'tmp', `preset_${p.id}_${item.id}${ext}`);
@@ -67,7 +67,7 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
     for (let i = 0; i < overlayItems.length; i++) {
       const item = overlayItems[i];
       if (item.type === 'media') {
-        const file = req.files.find(f => f.fieldname === `media_${item.id}`);
+        const file = (req.files || []).find(f => f.fieldname === `media_${item.id}`);
         if (file) {
           const ext = path.extname(file.originalname) || '.mp4';
           const newPath = path.join(__dirname, 'tmp', `overlay_${item.id}${ext}`);
@@ -104,7 +104,7 @@ app.post('/api/stream/update', upload.any(), async (req, res) => {
     for (let i = 0; i < overlayItems.length; i++) {
       const item = overlayItems[i];
       if (item.type === 'media') {
-        const file = req.files.find(f => f.fieldname === `media_${item.id}`);
+        const file = (req.files || []).find(f => f.fieldname === `media_${item.id}`);
         if (file) {
           const ext = path.extname(file.originalname) || '.mp4';
           const newPath = path.join(__dirname, 'tmp', `overlay_${item.id}${ext}`);

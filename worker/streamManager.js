@@ -144,6 +144,16 @@ const streamManager = {
       '-fflags', '+genpts+discardcorrupt+igndts'
     ];
     
+    // Check if we should loop at the ffmpeg level to prevent stream drops
+    // We do this if item.isLoop is true OR if it's the only item in a looping preset
+    const activePreset = _presets.find(p => p.id === _activePresetId);
+    const action = activePreset ? activePreset.actionOnEnd : 'stop';
+    const isOnlyItemLoop = (action === 'loop' && currentPlaylist.length === 1 && (!item.durationMs || item.durationMs === 0));
+    
+    if (isVod && (item.isLoop || isOnlyItemLoop)) {
+      baseOptions.unshift('-stream_loop', '-1');
+    }
+
     if (useRe) {
       baseOptions.unshift('-re');
     }
