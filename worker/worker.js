@@ -22,19 +22,43 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
     const streamKey = body.streamKey;
     const mode = body.mode;
     
-    let playlist = [];
+    let presets = [];
+    let activePresetId = body.activePresetId || '';
+
     if (mode === 'upload') {
       const baseVideo = req.files.find(f => f.fieldname === 'video');
       if (baseVideo) {
         const ext = path.extname(baseVideo.originalname) || '.mp4';
         const newPath = path.join(__dirname, 'tmp', `base_video_${Date.now()}${ext}`);
         await fs.rename(baseVideo.path, newPath);
-        playlist.push({ url: newPath, isLoop: true });
+        // Create a fake preset structure for legacy upload mode
+        presets = [{
+           id: 'legacy-upload',
+           name: 'Upload',
+           actionOnEnd: 'loop',
+           items: [{ url: newPath, isLoop: true, id: 'base-vid' }]
+        }];
+        activePresetId = 'legacy-upload';
       } else {
         throw new Error("Vídeo base não foi enviado.");
       }
     } else {
-      playlist = JSON.parse(body.playlist || '[]');
+      presets = JSON.parse(body.presets || '[]');
+      
+      // Process preset files
+      for (let p of presets) {
+        for (let item of p.items) {
+          if (item.type === 'file') {
+            const file = req.files.find(f => f.fieldname === `preset_file_${p.id}_${item.id}`);
+            if (file) {
+              const ext = path.extname(file.originalname) || '.mp4';
+              const newPath = path.join(__dirname, 'tmp', `preset_${p.id}_${item.id}${ext}`);
+              await fs.rename(file.path, newPath);
+              item.url = newPath;
+            }
+          }
+        }
+      }
     }
 
     let overlayItems = JSON.parse(body.overlayItems || '[]');
@@ -53,7 +77,10 @@ app.post('/api/stream/start', upload.any(), async (req, res) => {
       }
     }
 
-    streamManager.startStream(playlist, streamUrl, streamKey, overlayItems, 
+    let globalFilters = JSON.parse(body.globalFilters || '{}');
+    let config = JSON.parse(body.config || '{}');
+
+    streamManager.startStream(presets, activePresetId, streamUrl, streamKey, overlayItems, globalFilters, config,
       () => console.log("Stream acabou"), 
       (err) => console.error("Erro no stream", err)
     );

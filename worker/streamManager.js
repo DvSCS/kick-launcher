@@ -95,10 +95,33 @@ const streamManager = {
     }
 
     if (currentPlaylistIndex >= currentPlaylist.length) {
-      console.log('Playlist terminada.');
-      isStreaming = false;
-      _onEnd();
-      return;
+      const activePreset = _presets.find(p => p.id === _activePresetId);
+      const action = activePreset ? activePreset.actionOnEnd : 'stop';
+      
+      console.log(`Playlist do preset '${activePreset ? activePreset.name : 'Desconhecido'}' terminada. Ação configurada: ${action}`);
+
+      if (action === 'loop') {
+        currentPlaylistIndex = 0;
+      } else if (action === 'next') {
+        const currentIndex = _presets.findIndex(p => p.id === _activePresetId);
+        const nextPreset = _presets[currentIndex + 1];
+        if (nextPreset && nextPreset.items.length > 0) {
+          console.log(`Avançando para o próximo preset: ${nextPreset.name}`);
+          _activePresetId = nextPreset.id;
+          currentPlaylist = nextPreset.items;
+          currentPlaylistIndex = 0;
+        } else {
+          console.log('Não há próximo preset ou ele está vazio. Encerrando transmissão.');
+          isStreaming = false;
+          _onEnd();
+          return;
+        }
+      } else {
+        // stop
+        isStreaming = false;
+        _onEnd();
+        return;
+      }
     }
 
     const item = currentPlaylist[currentPlaylistIndex];
