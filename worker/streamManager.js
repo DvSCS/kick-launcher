@@ -344,15 +344,13 @@ const streamManager = {
       lastVideoMap = outputName;
     });
 
-    if (useRe) {
-       // Apply realtime filter to pace the stream correctly even when looping
-       filters.push({
-         filter: 'realtime',
-         inputs: lastVideoMap,
-         outputs: 'paced_video'
-       });
-       lastVideoMap = 'paced_video';
-    }
+    // Always apply realtime filter to pace the stream correctly, regardless of source
+    filters.push({
+      filter: 'realtime',
+      inputs: lastVideoMap,
+      outputs: 'paced_video'
+    });
+    lastVideoMap = 'paced_video';
 
     if (filters.length > 0) {
       activeCommand.complexFilter(filters, lastVideoMap);
@@ -375,10 +373,8 @@ const streamManager = {
       '-f mpegts'
     ];
 
-    if (useRe) {
-      // Also pace the audio
-      outputOptions.splice(outputOptions.indexOf('-c:a aac') + 1, 0, '-af', 'arealtime');
-    }
+    // Always pace the audio as well to maintain sync
+    outputOptions.splice(outputOptions.indexOf('-c:a aac') + 1, 0, '-af', 'arealtime');
 
     activeCommand.outputOptions(outputOptions)
       .on('start', (commandLine) => {
