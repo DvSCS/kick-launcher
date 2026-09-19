@@ -14,7 +14,7 @@ interface PlaylistItemUI {
   url: string;
   file: File | null;
   duration: number;
-  unit: 'min' | 'h';
+  unit: 'min' | 'h' | 'auto';
 }
 
 interface PresetUI {
@@ -57,11 +57,6 @@ interface GlobalFiltersUI {
   saturation: number;
 }
 
-const CANVAS_W = 1920;
-const CANVAS_H = 1080;
-const PREVIEW_W = 960;
-const PREVIEW_H = 540;
-const RATIO = CANVAS_W / PREVIEW_W; // 2
 
 export default function Home() {
   const [streamUrl, setStreamUrl] = useState("rtmps://stream.kick.com:443/app");
@@ -80,6 +75,21 @@ export default function Home() {
   const [activePresetId, setActivePresetId] = useState<string>('1');
   const [globalFilters, setGlobalFilters] = useState<GlobalFiltersUI>({ brightness: 0, contrast: 1, saturation: 1 });
   
+  // Streaming Configuration
+  const [canvasWidth, setCanvasWidth] = useState(1920);
+  const [canvasHeight, setCanvasHeight] = useState(1080);
+  const [fps, setFps] = useState(30);
+  const [videoBitrate, setVideoBitrate] = useState(3000);
+  const [audioBitrate, setAudioBitrate] = useState(160);
+
+  // Derived Canvas Constants
+  const PREVIEW_MAX_W = 960;
+  const PREVIEW_MAX_H = 540;
+  const displayScale = Math.min(PREVIEW_MAX_W / canvasWidth, PREVIEW_MAX_H / canvasHeight);
+  const PREVIEW_W = Math.round(canvasWidth * displayScale);
+  const PREVIEW_H = Math.round(canvasHeight * displayScale);
+  const RATIO = canvasWidth / PREVIEW_W;
+
   const [layers, setLayers] = useState<LayerUI[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
@@ -113,6 +123,11 @@ export default function Home() {
           if (data.presets.length > 0) setActivePresetId(data.presets[0].id);
         }
         if (data.globalFilters) setGlobalFilters(data.globalFilters);
+        if (data.canvasWidth) setCanvasWidth(data.canvasWidth);
+        if (data.canvasHeight) setCanvasHeight(data.canvasHeight);
+        if (data.fps) setFps(data.fps);
+        if (data.videoBitrate) setVideoBitrate(data.videoBitrate);
+        if (data.audioBitrate) setAudioBitrate(data.audioBitrate);
       } catch (e) {}
     }
   }, []);
@@ -123,9 +138,14 @@ export default function Home() {
       streamKey,
       workerUrl,
       presets,
-      globalFilters
+      globalFilters,
+      canvasWidth,
+      canvasHeight,
+      fps,
+      videoBitrate,
+      audioBitrate
     }));
-  }, [streamUrl, streamKey, workerUrl, presets, globalFilters]);
+  }, [streamUrl, streamKey, workerUrl, presets, globalFilters, canvasWidth, canvasHeight, fps, videoBitrate, audioBitrate]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -241,8 +261,8 @@ export default function Home() {
       fontsize: '48',
       width: defaultWidth,
       height: defaultHeight,
-      x: CANVAS_W / 2 - 100,
-      y: CANVAS_H / 2 - 50,
+      x: canvasWidth / 2 - 100,
+      y: canvasHeight / 2 - 50,
       font: 'arial',
       file: null,
       shadowColor: '#000000',
@@ -261,12 +281,12 @@ export default function Home() {
     };
     
     if (type === 'marquee') {
-       newLayer.y = CANVAS_H - 100;
+       newLayer.y = canvasHeight - 100;
        newLayer.x = 0; // x é controlado pelo math, mas deixamos 0 no estado visual
     }
     if (type === 'box') {
        newLayer.x = 0;
-       newLayer.y = CANVAS_H - 100;
+       newLayer.y = canvasHeight - 100;
     }
 
     setLayers([...layers, newLayer]);
@@ -401,21 +421,38 @@ export default function Home() {
     
     // We will send the full presets state to the backend
     // But we need to separate the File objects from the JSON structure
-    const presetsToSend = presets.map(p => ({
-      id: p.id,
-      name: p.name,
-      actionOnEnd: p.actionOnEnd,
-      items: p.items.map(item => ({
-        id: item.id,
-        type: item.type,
-        url: item.url,
-        durationMs: item.duration * (item.unit === 'h' ? 3600000 : 60000)
-      }))
-    }));
+    const presetsToSend = presets.map(p => {
+       const presetData = {
+          id: p.id,
+          name: p.name,
+          actionOnEnd: p.actionOnEnd,
+          items: p.items.map(item => {
+             // For "auto" duration, durationMs is not calculated from slider.
+             const durationMs = item.unit === 'auto' 
+                 ? 0 
+                 : (item.unit === 'min' ? item.duration * 60000 : item.duration * 3600000);
+             return {
+                id: item.id,
+                type: item.type,
+                url: item.type === 'url' ? item.url : 'LOCAL_FILE',
+                durationMs: durationMs,
+                isLoop: item.unit !== 'auto', // Only loop if not 'auto'
+             };
+          })
+       };
+       return presetData;
+    });
 
     formData.append("presets", JSON.stringify(presetsToSend));
     formData.append("activePresetId", activePresetId);
     formData.append("globalFilters", JSON.stringify(globalFilters));
+    formData.append("config", JSON.stringify({
+       canvasWidth,
+       canvasHeight,
+       fps,
+       videoBitrate,
+       audioBitrate
+    }));
 
     // Append video files
     presets.forEach(p => {
@@ -636,11 +673,15 @@ export default function Home() {
                                     )}
                                     
                                     <div className="flex items-center gap-1.5 shrink-0 border-l border-[#222] pl-2">
-                                       <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-12 bg-[#0e0e0e] border border-[#222] rounded px-1.5 py-1 text-xs text-center" />
-                                       <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-1 py-1 text-xs text-white">
-                                          <option value="min">Min</option><option value="h">Hrs</option>
-                                       </select>
-                                       <button onClick={() => removePlaylistItem(item.id)} disabled={isStreaming} className="p-1.5 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors ml-1">
+                                        <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-1 py-1 text-xs text-white">
+                                           <option value="min">Min</option>
+                                           <option value="h">Hrs</option>
+                                           <option value="auto">Auto</option>
+                                        </select>
+                                        {item.unit !== 'auto' && (
+                                           <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-12 bg-[#0e0e0e] border border-[#222] rounded px-1.5 py-1 text-xs text-center" />
+                                        )}
+                                        <button onClick={() => removePlaylistItem(item.id)} disabled={isStreaming} className="p-1.5 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors ml-1">
                                           <Trash2 className="w-3.5 h-3.5" />
                                        </button>
                                     </div>
@@ -680,6 +721,50 @@ export default function Home() {
                         <input type="range" min="0" max="3" step="0.1" value={globalFilters.saturation} onChange={(e) => setGlobalFilters({...globalFilters, saturation: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
                         <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.saturation}</span>
                      </div>
+                  </div>
+               </div>
+
+               <div className="h-px bg-[#1e1e1e]"></div>
+
+               {/* STREAM CONFIGURATION */}
+               <div>
+                  <div className="flex justify-between items-end mb-2">
+                     <label className="block text-[11px] font-medium text-[#666]">Configuração de Transmissão</label>
+                  </div>
+                  <div className="bg-[#111] border border-[#222] p-3 rounded-lg space-y-3">
+                     
+                     <div className="grid grid-cols-2 gap-2">
+                        <div>
+                           <label className="block text-[10px] text-[#555] mb-1">Resolução W</label>
+                           <input type="number" value={canvasWidth} onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 1920)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] text-[#555] mb-1">Resolução H</label>
+                           <input type="number" value={canvasHeight} onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 1080)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                        </div>
+                     </div>
+
+                     <div className="flex gap-2">
+                        <button onClick={() => { setCanvasWidth(1920); setCanvasHeight(1080); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">16:9 HD</button>
+                        <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1920); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">9:16 Vertical</button>
+                        <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1080); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">1:1 Quad</button>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#1a1a1a]">
+                        <div>
+                           <label className="block text-[10px] text-[#555] mb-1">FPS</label>
+                           <input type="number" value={fps} onChange={(e) => setFps(parseInt(e.target.value) || 30)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] text-[#555] mb-1">Vídeo (k)</label>
+                           <input type="number" value={videoBitrate} onChange={(e) => setVideoBitrate(parseInt(e.target.value) || 3000)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] text-[#555] mb-1">Áudio (k)</label>
+                           <input type="number" value={audioBitrate} onChange={(e) => setAudioBitrate(parseInt(e.target.value) || 160)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                        </div>
+                     </div>
+
                   </div>
                </div>
 

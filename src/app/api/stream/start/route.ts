@@ -65,6 +65,20 @@ export async function POST(req: NextRequest) {
       } catch (e) {}
     }
 
+    let config = {
+       canvasWidth: 1920,
+       canvasHeight: 1080,
+       fps: 30,
+       videoBitrate: 3000,
+       audioBitrate: 160
+    };
+    const configStr = formData.get('config') as string;
+    if (configStr) {
+       try {
+          config = JSON.parse(configStr);
+       } catch (e) {}
+    }
+
     // Process Preset Items (Iterate to find Local Files and save them)
     for (let p of presets) {
       for (let item of p.items) {
@@ -96,10 +110,11 @@ export async function POST(req: NextRequest) {
       streamKey,
       overlayItems,
       globalFilters,
+      config,
       () => {
         console.log('Stream encerrou naturalmente');
       },
-      (err) => {
+      (err: any) => {
         console.error('Erro na stream:', err);
       }
     );

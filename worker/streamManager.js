@@ -22,9 +22,10 @@ let _onEnd = () => {};
 let _onError = () => {};
 let _overlayItems = [];
 let _globalFilters = { brightness: 0, contrast: 1, saturation: 1 };
+let _config = { canvasWidth: 1920, canvasHeight: 1080, fps: 30, videoBitrate: 3000, audioBitrate: 160 };
 
 const streamManager = {
-  startStream: (presets, activePresetId, streamUrl, streamKey, overlayItems, globalFilters, onEnd, onError) => {
+  startStream: (presets, activePresetId, streamUrl, streamKey, overlayItems, globalFilters, config, onEnd, onError) => {
     if (isStreaming) {
       throw new Error("Já existe uma transmissão em andamento.");
     }
@@ -32,7 +33,8 @@ const streamManager = {
     _presets = presets || [];
     _activePresetId = activePresetId;
     _globalFilters = globalFilters || { brightness: 0, contrast: 1, saturation: 1 };
-    
+    _config = config || { canvasWidth: 1920, canvasHeight: 1080, fps: 30, videoBitrate: 3000, audioBitrate: 160 };
+
     const initialPreset = _presets.find(p => p.id === _activePresetId);
     if (!initialPreset || initialPreset.items.length === 0) {
       throw new Error("O Preset ativo não possui mídias.");
@@ -148,7 +150,7 @@ const streamManager = {
 
     filters.push({
       filter: 'scale',
-      options: '1920:1080',
+      options: `${_config.canvasWidth}:${_config.canvasHeight}`,
       inputs: lastVideoMap,
       outputs: 'base_scaled'
     });
@@ -273,19 +275,18 @@ const streamManager = {
 
     activeCommand
       .outputOptions([
-        '-map 0:a?',
         '-c:v libx264',
-        '-preset ultrafast',
+        '-preset veryfast',
         '-profile:v main',
-        '-b:v 2000k',
-        '-maxrate 2000k',
-        '-bufsize 4000k',
+        `-b:v ${_config.videoBitrate}k`,
+        `-maxrate ${_config.videoBitrate}k`,
+        `-bufsize ${_config.videoBitrate * 2}k`,
         '-pix_fmt yuv420p',
-        '-s 1280x720',
-        '-r 30',
-        '-g 60',
+        `-s ${_config.canvasWidth}x${_config.canvasHeight}`,
+        `-r ${_config.fps}`,
+        `-g ${_config.fps * 2}`,
         '-c:a aac',
-        '-b:a 160k',
+        `-b:a ${_config.audioBitrate}k`,
         '-ar 44100',
         '-f mpegts'
       ])
@@ -296,6 +297,8 @@ const streamManager = {
             console.log(`Tempo do item atual expirou (${item.durationMs}ms). Transicionando para o próximo...`);
             streamManager.transitionToNext();
           }, item.durationMs);
+        } else if (!item.isLoop) {
+          console.log(`Modo auto (até acabar a mídia) detectado. Aguardando sinal de ffmpeg end...`);
         }
       })
       .on('error', (err, stdout, stderr) => {

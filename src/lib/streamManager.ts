@@ -54,6 +54,14 @@ interface GlobalFilters {
   saturation: number;
 }
 
+interface StreamConfig {
+  canvasWidth: number;
+  canvasHeight: number;
+  fps: number;
+  videoBitrate: number;
+  audioBitrate: number;
+}
+
 let activeCommand: ffmpeg.FfmpegCommand | null = null;
 let isStreaming = false;
 let currentPlaylist: PlaylistItem[] = [];
@@ -68,6 +76,7 @@ let _onEnd: () => void = () => {};
 let _onError: (err: any) => void = () => {};
 let _overlayItems: OverlayItem[] = [];
 let _globalFilters: GlobalFilters = { brightness: 0, contrast: 1, saturation: 1 };
+let _config: StreamConfig = { canvasWidth: 1920, canvasHeight: 1080, fps: 30, videoBitrate: 3000, audioBitrate: 160 };
 
 export const streamManager = {
   startStream: (
@@ -77,6 +86,7 @@ export const streamManager = {
     streamKey: string, 
     overlayItems: OverlayItem[],
     globalFilters: GlobalFilters,
+    config: StreamConfig,
     onEnd: () => void, 
     onError: (err: any) => void
   ) => {
@@ -87,6 +97,7 @@ export const streamManager = {
     _presets = presets || [];
     _activePresetId = activePresetId;
     _globalFilters = globalFilters || { brightness: 0, contrast: 1, saturation: 1 };
+    _config = config || { canvasWidth: 1920, canvasHeight: 1080, fps: 30, videoBitrate: 3000, audioBitrate: 160 };
 
     const initialPreset = _presets.find(p => p.id === _activePresetId);
     if (!initialPreset || initialPreset.items.length === 0) {
@@ -154,7 +165,7 @@ export const streamManager = {
     if (_overlayItems.length > 0 || _globalFilters.brightness !== 0 || _globalFilters.contrast !== 1 || _globalFilters.saturation !== 1) {
        filters.push({
           filter: 'scale',
-          options: '1920:1080',
+          options: `${_config.canvasWidth}:${_config.canvasHeight}`,
           inputs: '0:v',
           outputs: 'base_scaled'
        });
@@ -343,15 +354,15 @@ export const streamManager = {
         '-c:v libx264',
         '-preset veryfast',
         '-profile:v main',
-        '-b:v 3000k',
-        '-maxrate 3000k',
-        '-bufsize 6000k',
+        `-b:v ${_config.videoBitrate}k`,
+        `-maxrate ${_config.videoBitrate}k`,
+        `-bufsize ${_config.videoBitrate * 2}k`,
         '-pix_fmt yuv420p',
-        '-s 1920x1080', // Força saída em 1080p
-        '-r 30',
-        '-g 60',
+        `-s ${_config.canvasWidth}x${_config.canvasHeight}`,
+        `-r ${_config.fps}`,
+        `-g ${_config.fps * 2}`,
         '-c:a aac',
-        '-b:a 160k',
+        `-b:a ${_config.audioBitrate}k`,
         '-ar 44100',
         '-f flv'
       ])
@@ -362,6 +373,8 @@ export const streamManager = {
             console.log(`Tempo do item atual expirou (${item.durationMs}ms). Transicionando para o próximo...`);
             streamManager.transitionToNext();
           }, item.durationMs);
+        } else if (!item.isLoop) {
+          console.log(`Modo auto (até acabar a mídia) detectado. Aguardando sinal de ffmpeg end...`);
         }
       })
       .on('error', (err, stdout, stderr) => {
