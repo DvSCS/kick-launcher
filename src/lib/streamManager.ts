@@ -46,6 +46,7 @@ export interface OverlayItem {
   backgroundColor?: string;
   backgroundPadding?: number | string;
   blurAmount?: number;
+  marqueeSpeed?: number;
 }
 
 interface GlobalFilters {
@@ -298,7 +299,8 @@ export const streamManager = {
 
        } else if (overlay.type === 'clock') {
            const drawtextOpts: any = {
-             text: '%{localtime\\:%H\\\\:%M\\\\:%S}', // FFmpeg local time string
+             text: '%H\\\\:%M\\\\:%S',
+             expansion: 'strftime',
              fontsize: overlay.fontsize || '48',
              x: overlay.x,
              y: overlay.y
@@ -314,11 +316,12 @@ export const streamManager = {
 
        } else if (overlay.type === 'marquee' && overlay.text) {
            const text = overlay.text.replace(/:/g, '\\:');
+           const speed = overlay.marqueeSpeed || 50;
            const drawtextOpts: any = {
              text: text,
              fontsize: overlay.fontsize || '48',
              y: overlay.y,
-             x: 'w-mod(t*150\\,w+tw)' // Scroll math (150 is speed)
+             x: `w-mod(t*${speed}\\,w+tw)` // Scroll math
            };
            injectTextEffects(overlay, drawtextOpts);
            filters.push({

@@ -217,7 +217,7 @@ const streamManager = {
       
       if (overlayItem.type === 'text' || overlayItem.type === 'clock' || overlayItem.type === 'marquee') {
         const textToDraw = overlayItem.type === 'clock' 
-          ? `%{localtime:%H\\:%M\\:%S}` 
+          ? `%H\\\\:%M\\\\:%S` 
           : (overlayItem.text || '').replace(/:/g, '\\:');
         
         let colorStr = overlayItem.color || 'white';
@@ -233,8 +233,14 @@ const streamManager = {
 
         let textFilterParams = `text='${textToDraw}':x=${overlayItem.x}:y=${overlayItem.y}:fontcolor=${colorStr}:fontsize=${fontSizeStr}:fontfile='${fontFile}'`;
 
+        if (overlayItem.type === 'clock') {
+            textFilterParams += `:expansion=strftime`;
+        }
+
         if (overlayItem.type === 'marquee') {
-            textFilterParams += `:x=W-mod(t*200\\,W+tw)`; 
+            const speed = overlayItem.marqueeSpeed || 50;
+            // Remove previous x to avoid duplicate param
+            textFilterParams = `text='${textToDraw}':y=${overlayItem.y}:fontcolor=${colorStr}:fontsize=${fontSizeStr}:fontfile='${fontFile}':x=W-mod(t*${speed}\\,W+tw)`; 
         }
         
         filters.push({
