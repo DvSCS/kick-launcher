@@ -154,10 +154,6 @@ const streamManager = {
       baseOptions.unshift('-stream_loop', '-1');
     }
 
-    if (useRe) {
-      baseOptions.unshift('-re');
-    }
-
     const inputOptions = isHls 
         ? [
             ...baseOptions,
@@ -348,27 +344,43 @@ const streamManager = {
       lastVideoMap = outputName;
     });
 
+    if (useRe) {
+       // Apply realtime filter to pace the stream correctly even when looping
+       filters.push({
+         filter: 'realtime',
+         inputs: lastVideoMap,
+         outputs: 'paced_video'
+       });
+       lastVideoMap = 'paced_video';
+    }
+
     if (filters.length > 0) {
       activeCommand.complexFilter(filters, lastVideoMap);
     }
 
-    activeCommand
-      .outputOptions([
-        '-c:v libx264',
-        '-preset veryfast',
-        '-profile:v main',
-        `-b:v ${_config.videoBitrate}k`,
-        `-maxrate ${_config.videoBitrate}k`,
-        `-bufsize ${_config.videoBitrate * 2}k`,
-        '-pix_fmt yuv420p',
-        `-s ${_config.canvasWidth}x${_config.canvasHeight}`,
-        `-r ${_config.fps}`,
-        `-g ${_config.fps * 2}`,
-        '-c:a aac',
-        `-b:a ${_config.audioBitrate}k`,
-        '-ar 44100',
-        '-f mpegts'
-      ])
+    const outputOptions = [
+      '-c:v libx264',
+      '-preset veryfast',
+      '-profile:v main',
+      `-b:v ${_config.videoBitrate}k`,
+      `-maxrate ${_config.videoBitrate}k`,
+      `-bufsize ${_config.videoBitrate * 2}k`,
+      '-pix_fmt yuv420p',
+      `-s ${_config.canvasWidth}x${_config.canvasHeight}`,
+      `-r ${_config.fps}`,
+      `-g ${_config.fps * 2}`,
+      '-c:a aac',
+      `-b:a ${_config.audioBitrate}k`,
+      '-ar 44100',
+      '-f mpegts'
+    ];
+
+    if (useRe) {
+      // Also pace the audio
+      outputOptions.splice(outputOptions.indexOf('-c:a aac') + 1, 0, '-af', 'arealtime');
+    }
+
+    activeCommand.outputOptions(outputOptions)
       .on('start', (commandLine) => {
         console.log('FFmpeg Process Started:', commandLine);
         if (item.durationMs && item.durationMs > 0) {
