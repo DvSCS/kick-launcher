@@ -710,74 +710,6 @@ export default function Home() {
 
                <div className="h-px bg-[#1e1e1e]"></div>
 
-               {/* GLOBAL FILTERS */}
-               <div>
-                  <div className="flex justify-between items-end mb-2">
-                     <label className="block text-[11px] font-medium text-[#666]">Filtros de Imagem (Global)</label>
-                  </div>
-                  <div className="bg-[#111] border border-[#222] p-3 rounded-lg space-y-3">
-                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-[#555] w-12 shrink-0">Brilho</span>
-                        <input type="range" min="-1" max="1" step="0.1" value={globalFilters.brightness} onChange={(e) => setGlobalFilters({...globalFilters, brightness: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
-                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.brightness}</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-[#555] w-12 shrink-0">Contraste</span>
-                        <input type="range" min="-2" max="2" step="0.1" value={globalFilters.contrast} onChange={(e) => setGlobalFilters({...globalFilters, contrast: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
-                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.contrast}</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-[#555] w-12 shrink-0">Saturação</span>
-                        <input type="range" min="0" max="3" step="0.1" value={globalFilters.saturation} onChange={(e) => setGlobalFilters({...globalFilters, saturation: parseFloat(e.target.value)})} disabled={isStreaming} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
-                        <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.saturation}</span>
-                     </div>
-                  </div>
-               </div>
-
-               <div className="h-px bg-[#1e1e1e]"></div>
-
-               {/* STREAM CONFIGURATION */}
-               <div>
-                  <div className="flex justify-between items-end mb-2">
-                     <label className="block text-[11px] font-medium text-[#666]">Configuração de Transmissão</label>
-                  </div>
-                  <div className="bg-[#111] border border-[#222] p-3 rounded-lg space-y-3">
-                     
-                     <div className="grid grid-cols-2 gap-2">
-                        <div>
-                           <label className="block text-[10px] text-[#555] mb-1">Resolução W</label>
-                           <input type="number" value={canvasWidth} onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 1920)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                        </div>
-                        <div>
-                           <label className="block text-[10px] text-[#555] mb-1">Resolução H</label>
-                           <input type="number" value={canvasHeight} onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 1080)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                        </div>
-                     </div>
-
-                     <div className="flex gap-2">
-                        <button onClick={() => { setCanvasWidth(1920); setCanvasHeight(1080); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">16:9 HD</button>
-                        <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1920); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">9:16 Vertical</button>
-                        <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1080); }} disabled={isStreaming} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1 rounded text-white/70 border border-[#333]">1:1 Quad</button>
-                     </div>
-
-                     <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#1a1a1a]">
-                        <div>
-                           <label className="block text-[10px] text-[#555] mb-1">FPS</label>
-                           <input type="number" value={fps} onChange={(e) => setFps(parseInt(e.target.value) || 30)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                        </div>
-                        <div>
-                           <label className="block text-[10px] text-[#555] mb-1">Vídeo (k)</label>
-                           <input type="number" value={videoBitrate} onChange={(e) => setVideoBitrate(parseInt(e.target.value) || 3000)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                        </div>
-                        <div>
-                           <label className="block text-[10px] text-[#555] mb-1">Áudio (k)</label>
-                           <input type="number" value={audioBitrate} onChange={(e) => setAudioBitrate(parseInt(e.target.value) || 160)} disabled={isStreaming} className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2.5 py-1.5 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                        </div>
-                     </div>
-
-                  </div>
-               </div>
-
                <div className="h-px bg-[#1e1e1e]"></div>
 
                <div className="flex gap-3">
@@ -854,16 +786,20 @@ export default function Home() {
                {isFreeCameraEnabled && (
                   <Rnd
                      bounds="parent"
-                     position={{ x: Math.round(baseMediaTransform.x * RATIO), y: Math.round(baseMediaTransform.y * RATIO) }}
-                     size={{ width: Math.round(baseMediaTransform.w * RATIO).toString(), height: Math.round(baseMediaTransform.h * RATIO).toString() }}
-                     onDragStop={(e, d) => setBaseMediaTransform(prev => ({ ...prev, x: Math.round(d.x / RATIO), y: Math.round(d.y / RATIO) }))}
+                     default={{
+                        x: Math.round(baseMediaTransform.x / RATIO),
+                        y: Math.round(baseMediaTransform.y / RATIO),
+                        width: Math.round(baseMediaTransform.w / RATIO),
+                        height: Math.round(baseMediaTransform.h / RATIO)
+                     }}
+                     onDragStop={(e, d) => setBaseMediaTransform(prev => ({ ...prev, x: Math.round(d.x * RATIO), y: Math.round(d.y * RATIO) }))}
                      onResizeStop={(e, direction, ref, delta, position) => {
                         setBaseMediaTransform(prev => ({
                            ...prev,
-                           x: Math.round(position.x / RATIO),
-                           y: Math.round(position.y / RATIO),
-                           w: Math.round(ref.offsetWidth / RATIO),
-                           h: Math.round(ref.offsetHeight / RATIO)
+                           x: Math.round(position.x * RATIO),
+                           y: Math.round(position.y * RATIO),
+                           w: Math.round(ref.offsetWidth * RATIO),
+                           h: Math.round(ref.offsetHeight * RATIO)
                         }));
                      }}
                      className="z-0"
@@ -1397,6 +1333,29 @@ export default function Home() {
                             <div className="space-y-1">
                                <span className="text-[10px] text-[#444] block">Áudio (kbps)</span>
                                <input type="number" value={audioBitrate} onChange={(e) => setAudioBitrate(parseInt(e.target.value) || 160)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="h-px bg-[#1e1e1e]"></div>
+
+                      <div className="space-y-2">
+                         <label className="text-[11px] font-medium text-[#777] block">Filtros de Imagem da Base (Global)</label>
+                         <div className="bg-[#111] border border-[#222] p-3 rounded-lg space-y-3">
+                            <div className="flex items-center gap-3">
+                               <span className="text-[10px] text-[#555] w-12 shrink-0">Brilho</span>
+                               <input type="range" min="-1" max="1" step="0.1" value={globalFilters.brightness} onChange={(e) => setGlobalFilters({...globalFilters, brightness: parseFloat(e.target.value)})} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                               <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.brightness}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <span className="text-[10px] text-[#555] w-12 shrink-0">Contraste</span>
+                               <input type="range" min="-2" max="2" step="0.1" value={globalFilters.contrast} onChange={(e) => setGlobalFilters({...globalFilters, contrast: parseFloat(e.target.value)})} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                               <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.contrast}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                               <span className="text-[10px] text-[#555] w-12 shrink-0">Saturação</span>
+                               <input type="range" min="0" max="3" step="0.1" value={globalFilters.saturation} onChange={(e) => setGlobalFilters({...globalFilters, saturation: parseFloat(e.target.value)})} className="flex-1 accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                               <span className="text-[10px] text-[#888] w-6 text-right tabular-nums">{globalFilters.saturation}</span>
                             </div>
                          </div>
                       </div>
