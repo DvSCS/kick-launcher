@@ -1,38 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --color-kick: #53FC18;
   --color-kick-dark: #3fb212;
-  --color-bg-dark: #0f1011;
-  --color-bg-panel: #18191b;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a0a0;
+  --color-bg-dark: #0e0e0e;
+  --color-bg-panel: #161616;
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #737373;
 }
 
 :root {
-  --background: #0f1011;
-  --foreground: #ffffff;
+  --background: #0e0e0e;
+  --foreground: #e8e8e8;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   min-height: 100vh;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar — subtle, not themed */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-dark);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-bg-panel);
-  border-radius: 4px;
+  background: #262626;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-kick-dark);
+  background: #333;
+}
+
+/* Kill the native color picker border jank */
+input[type="color"] {
+  -webkit-appearance: none;
+  border: none;
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* Range slider custom */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #262626;
+  border-radius: 2px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-kick);
+  cursor: pointer;
+  border: 2px solid #0e0e0e;
+}
+
+/* Focus states — no blue outlines */
+*:focus-visible {
+  outline: 1px solid var(--color-kick);
+  outline-offset: 1px;
 }

@@ -465,24 +465,18 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-dark)] text-white relative">
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-kick/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-kick/5 blur-[120px]" />
-      </div>
+    <main className="min-h-screen bg-[var(--color-bg-dark)] text-white">
 
-      {/* TELA PRINCIPAL (SIMPLIFICADA) */}
-      <div className={`transition-all duration-500 ease-in-out flex flex-col items-center justify-center min-h-screen p-4 ${isStudioOpen ? 'opacity-0 pointer-events-none scale-95 absolute inset-0' : 'opacity-100 scale-100'}`}>
-         <div className="w-full max-w-xl bg-[var(--color-bg-panel)] rounded-2xl p-8 shadow-2xl border border-white/5 backdrop-blur-sm z-10">
-            <div className="flex items-center justify-between mb-8">
-               <div>
-                  <h1 className="text-3xl font-bold tracking-tight mb-1 flex items-center gap-3">
-                     <span className="text-kick">Kick</span> Launcher
-                  </h1>
-                  <p className="text-text-secondary text-sm">Pronto para entrar ao vivo</p>
+      {/* TELA PRINCIPAL */}
+      <div className={`transition-all duration-300 ease-out flex flex-col items-center justify-center min-h-screen p-4 ${isStudioOpen ? 'opacity-0 pointer-events-none absolute inset-0' : 'opacity-100'}`}>
+         <div className="w-full max-w-xl bg-[var(--color-bg-panel)] rounded-xl p-7 border border-[#222] z-10">
+            <div className="flex items-center justify-between mb-7">
+               <div className="flex items-center gap-3">
+                  <img src="/kick-logo.svg" alt="Kick" className="w-8 h-8" />
+                  <h1 className="text-xl font-semibold text-white/90">Launcher</h1>
                </div>
-               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider ${isStreaming ? 'bg-kick/10 text-kick border border-kick/20' : 'bg-white/5 text-text-secondary border border-white/10'}`}>
-                  <span className={`w-2 h-2 rounded-full ${isStreaming ? 'bg-kick animate-pulse' : 'bg-text-secondary'}`} />
+               <div className={`flex items-center gap-2 px-2.5 py-1 rounded-md text-[11px] font-medium ${isStreaming ? 'bg-kick/10 text-kick border border-kick/20' : 'bg-[#1a1a1a] text-[#555] border border-[#252525]'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isStreaming ? 'bg-kick' : 'bg-[#444]'}`} />
                   {isStreaming ? "Ao Vivo" : "Offline"}
                </div>
             </div>
@@ -498,87 +492,87 @@ export default function Home() {
                )}
             </AnimatePresence>
 
-            <div className="space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-5">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                     <label className="block text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider">Stream URL</label>
-                     <input type="text" value={streamUrl} onChange={(e) => setStreamUrl(e.target.value)} disabled={isStreaming} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-kick" />
+                     <label className="block text-[11px] font-medium text-[#666] mb-1.5">Stream URL</label>
+                     <input type="text" value={streamUrl} onChange={(e) => setStreamUrl(e.target.value)} disabled={isStreaming} className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-kick" />
                   </div>
                   <div>
-                     <label className="block text-xs font-bold text-text-secondary mb-2 uppercase tracking-wider">Stream Key</label>
-                     <input type="password" value={streamKey} onChange={(e) => setStreamKey(e.target.value)} disabled={isStreaming} className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-kick" />
+                     <label className="block text-[11px] font-medium text-[#666] mb-1.5">Stream Key</label>
+                     <input type="password" value={streamKey} onChange={(e) => setStreamKey(e.target.value)} disabled={isStreaming} className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-kick" />
                   </div>
                </div>
                
-               <div className="relative">
-                  <div className="flex justify-between items-end mb-2">
-                     <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">Conexão do Motor (Obrigatório)</label>
-                     <a href="/KickWorker.zip" download className="text-xs font-bold text-kick hover:underline flex items-center gap-1"><UploadCloud className="w-3 h-3"/> Baixar Motor (.exe)</a>
+               <div>
+                  <div className="flex justify-between items-end mb-1.5">
+                     <label className="block text-[11px] font-medium text-[#666]">Motor de renderização</label>
+                     <a href="/KickWorker.zip" download className="text-[11px] font-medium text-kick hover:underline flex items-center gap-1"><UploadCloud className="w-3 h-3"/> Baixar motor</a>
                   </div>
                   <div className="relative flex items-center">
-                    <input type="text" value={workerUrl} onChange={(e) => setWorkerUrl(e.target.value)} disabled={isStreaming} placeholder="Cole o link gerado pelo Motor (ex: https://xxx.loca.lt)" className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-kick pr-12" />
-                    <div className="absolute right-3 flex items-center justify-center">
-                       {workerStatus === 'checking' && <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />}
-                       {workerStatus === 'valid' && <CheckCircle2 className="w-5 h-5 text-green-500 bg-green-500/10 rounded-full" />}
-                       {workerStatus === 'invalid' && <XCircle className="w-5 h-5 text-red-500 bg-red-500/10 rounded-full" />}
+                    <input type="text" value={workerUrl} onChange={(e) => setWorkerUrl(e.target.value)} disabled={isStreaming} placeholder="https://xxx.loca.lt" className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-kick pr-10" />
+                    <div className="absolute right-3">
+                       {workerStatus === 'checking' && <Loader2 className="w-4 h-4 text-[#444] animate-spin" />}
+                       {workerStatus === 'valid' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                       {workerStatus === 'invalid' && <XCircle className="w-4 h-4 text-red-500" />}
                     </div>
                   </div>
-                  {workerStatus === 'invalid' && workerUrl.length > 0 && <p className="text-xs text-red-400 mt-2">Link inválido ou Motor offline.</p>}
+                  {workerStatus === 'invalid' && workerUrl.length > 0 && <p className="text-[11px] text-red-400 mt-1.5">Motor offline ou link inválido.</p>}
                </div>
 
-               <hr className="border-white/5" />
+               <div className="h-px bg-[#1e1e1e]"></div>
 
                <div>
-                  <div className="flex gap-2 mb-4 bg-black/40 p-1 rounded-xl">
-                     <button onClick={() => setMode('upload')} disabled={isStreaming} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === 'upload' ? 'bg-[var(--color-bg-panel)] text-white shadow' : 'text-text-secondary hover:text-white'}`}>
-                        <UploadCloud className="w-4 h-4" /> Arquivo Local
+                  <div className="flex gap-1 mb-3 bg-[#111] p-0.5 rounded-lg">
+                     <button onClick={() => setMode('upload')} disabled={isStreaming} className={`flex-1 py-2 text-[12px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${mode === 'upload' ? 'bg-[var(--color-bg-panel)] text-white' : 'text-[#555] hover:text-white'}`}>
+                        <UploadCloud className="w-3.5 h-3.5" /> Arquivo local
                      </button>
-                     <button onClick={() => setMode('reback')} disabled={isStreaming} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === 'reback' ? 'bg-[var(--color-bg-panel)] text-white shadow' : 'text-text-secondary hover:text-white'}`}>
-                        <ListVideo className="w-4 h-4" /> Múltiplos Links (IPTV)
+                     <button onClick={() => setMode('reback')} disabled={isStreaming} className={`flex-1 py-2 text-[12px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 ${mode === 'reback' ? 'bg-[var(--color-bg-panel)] text-white' : 'text-[#555] hover:text-white'}`}>
+                        <ListVideo className="w-3.5 h-3.5" /> Links IPTV
                      </button>
                   </div>
 
                   {mode === 'upload' ? (
-                     <div onClick={() => !isStreaming && fileInputRef.current?.click()} className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl transition-all ${file ? 'border-kick/50 bg-kick/5' : 'border-white/10 bg-black/40 hover:border-kick/30'} cursor-pointer`}>
+                     <div onClick={() => !isStreaming && fileInputRef.current?.click()} className={`flex flex-col items-center justify-center w-full h-28 border border-dashed rounded-lg transition-colors ${file ? 'border-kick/40 bg-kick/5' : 'border-[#252525] bg-[#111] hover:border-[#333]'} cursor-pointer`}>
                         <input type="file" accept="video/mp4" className="hidden" ref={fileInputRef} onChange={handleBaseVideoChange} disabled={isStreaming} />
-                        <span className="text-sm font-medium text-kick">{file ? file.name : 'Selecionar MP4 de Vídeo Base'}</span>
+                        <span className="text-[12px] font-medium text-[#888]">{file ? file.name : 'Clique para selecionar o vídeo base (.mp4)'}</span>
                      </div>
                   ) : (
-                     <div className="space-y-3">
+                     <div className="space-y-2">
                         {playlist.map((item, index) => (
-                           <div key={item.id} className="bg-black/40 border border-white/5 p-3 rounded-xl flex gap-3">
+                           <div key={item.id} className="bg-[#111] border border-[#222] p-2.5 rounded-lg flex gap-2">
                               <input type="text" value={item.url} onChange={(e) => updatePlaylistItem(item.id, 'url', e.target.value)} disabled={isStreaming} className="flex-1 bg-transparent text-sm text-white focus:outline-none" placeholder="http://iptv.com/live.ts" />
                               
                               {playlist.length > 1 && (
-                                 <div className="flex items-center gap-2 shrink-0 border-l border-white/10 pl-3">
-                                    <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-16 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center" />
-                                    <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-sm">
-                                       <option value="min">Min</option><option value="h">Horas</option>
+                                 <div className="flex items-center gap-1.5 shrink-0 border-l border-[#222] pl-2">
+                                    <input type="number" min="1" value={item.duration} onChange={(e) => updatePlaylistItem(item.id, 'duration', parseInt(e.target.value) || 1)} disabled={isStreaming} className="w-14 bg-[#0e0e0e] border border-[#222] rounded px-2 py-1 text-sm text-center" />
+                                    <select value={item.unit} onChange={(e) => updatePlaylistItem(item.id, 'unit', e.target.value)} disabled={isStreaming} className="bg-[#0e0e0e] border border-[#222] rounded px-1.5 py-1 text-sm">
+                                       <option value="min">Min</option><option value="h">Hrs</option>
                                     </select>
                                  </div>
                               )}
                            </div>
                         ))}
-                        <button onClick={() => setPlaylist([...playlist, { id: Math.random().toString(), url: '', duration: 1, unit: 'h' }])} disabled={isStreaming} className="w-full py-3 border border-dashed border-white/20 rounded-xl text-text-secondary hover:text-kick flex justify-center gap-2 text-sm"><Plus className="w-4 h-4"/> Add Mídia</button>
+                        <button onClick={() => setPlaylist([...playlist, { id: Math.random().toString(), url: '', duration: 1, unit: 'h' }])} disabled={isStreaming} className="w-full py-2.5 border border-dashed border-[#252525] rounded-lg text-[#555] hover:text-white hover:border-[#333] flex justify-center gap-1.5 text-[12px] transition-colors"><Plus className="w-3.5 h-3.5"/> Adicionar mídia</button>
                      </div>
                   )}
                </div>
 
-               <hr className="border-white/5" />
+               <div className="h-px bg-[#1e1e1e]"></div>
 
-               <div className="flex gap-4 pt-2">
-                  <button onClick={() => setIsStudioOpen(true)} className="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm transition-all">
-                     <Layout className="w-4 h-4"/> Personalizar Overlays
-                     {layers.length > 0 && <span className="bg-kick text-black px-2 py-0.5 rounded-full text-[10px] ml-2">{layers.length} Ativos</span>}
+               <div className="flex gap-3">
+                  <button onClick={() => setIsStudioOpen(true)} className="flex-1 bg-[#111] border border-[#222] hover:border-[#333] py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 text-[12px] transition-colors">
+                     <Layout className="w-3.5 h-3.5"/> Overlays
+                     {layers.length > 0 && <span className="bg-kick text-black px-1.5 py-0.5 rounded text-[10px] font-semibold">{layers.length}</span>}
                   </button>
 
                   {isStreaming ? (
-                     <button onClick={stopStream} disabled={isLoading} className="flex-1 bg-red-500/20 text-red-500 hover:bg-red-500/30 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
-                        <Square className="w-5 h-5 fill-current" /> Parar Live
+                     <button onClick={stopStream} disabled={isLoading} className="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/15 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 text-[12px] border border-red-500/20 transition-colors">
+                        <Square className="w-4 h-4 fill-current" /> Parar
                      </button>
                   ) : (
-                     <button onClick={startStream} disabled={isLoading || workerStatus !== 'valid'} className={`flex-1 ${workerStatus !== 'valid' ? 'bg-kick/20 text-kick/40 cursor-not-allowed' : 'bg-kick text-black hover:bg-kick/80'} py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all`}>
-                        <Play className="w-5 h-5 fill-current" /> {isLoading ? 'Ligando...' : 'Iniciar Transmissão'}
+                     <button onClick={startStream} disabled={isLoading || workerStatus !== 'valid'} className={`flex-1 ${workerStatus !== 'valid' ? 'bg-[#1a1a1a] text-[#444] cursor-not-allowed border border-[#222]' : 'bg-kick text-black hover:bg-kick/85 border border-kick'} py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 text-[12px] transition-colors`}>
+                        <Play className="w-4 h-4 fill-current" /> {isLoading ? 'Iniciando...' : 'Iniciar'}
                      </button>
                   )}
                </div>
@@ -586,34 +580,34 @@ export default function Home() {
          </div>
       </div>
 
-      {/* STUDIO MODE (CANVAS MODAL) */}
-      <div className={`fixed inset-0 bg-black z-50 flex flex-col md:flex-row transition-all duration-500 ease-in-out ${isStudioOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-10'}`}>
+      {/* STUDIO MODE */}
+      <div className={`fixed inset-0 bg-[#0a0a0a] z-50 flex flex-col md:flex-row transition-opacity duration-300 ${isStudioOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
          
-         <div className="absolute top-4 left-4 z-50 flex items-center gap-4">
-            <button onClick={() => setIsStudioOpen(false)} className="bg-white/10 hover:bg-white/20 p-3 rounded-full text-white transition-all backdrop-blur-md">
-               <X className="w-6 h-6"/>
+         <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
+            <button onClick={() => setIsStudioOpen(false)} className="bg-[#1a1a1a] hover:bg-[#222] p-2.5 rounded-lg text-white/70 hover:text-white transition-colors border border-[#252525]">
+               <X className="w-5 h-5"/>
             </button>
             {isStreaming && (
-               <button onClick={updateLiveStream} disabled={isLoading} className="bg-kick text-black hover:bg-kick/80 px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-kick/20">
-                  <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} /> Salvar e Atualizar Live
+               <button onClick={updateLiveStream} disabled={isLoading} className="bg-kick text-black hover:bg-kick/85 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-2 text-[12px] transition-colors">
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Atualizar
                </button>
             )}
          </div>
 
          {/* CANVAS AREA */}
-         <div className="flex-1 flex flex-col p-6 pt-20 pb-4 items-center justify-center bg-[#0a0a0a] relative">
+         <div className="flex-1 flex flex-col p-5 pt-16 pb-3 items-center justify-center bg-[#090909] relative">
             
-            <div className="absolute top-6 right-6 flex gap-2 z-20">
-               <button onClick={() => addLayer('text')} className="px-3 py-2 bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors backdrop-blur-sm"><Type className="w-3.5 h-3.5"/> Texto</button>
-               <button onClick={() => addLayer('marquee')} className="px-3 py-2 bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors backdrop-blur-sm"><Navigation className="w-3.5 h-3.5 rotate-90"/> Letreiro</button>
-               <button onClick={() => addLayer('clock')} className="px-3 py-2 bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors backdrop-blur-sm"><Clock className="w-3.5 h-3.5"/> Relógio</button>
-               <button onClick={() => addLayer('media')} className="px-3 py-2 bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors backdrop-blur-sm"><ImageIcon className="w-3.5 h-3.5"/> Mídia</button>
-               <button onClick={() => addLayer('box')} className="px-3 py-2 bg-black/40 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors backdrop-blur-sm"><BoxIcon className="w-3.5 h-3.5"/> Caixa</button>
+            <div className="absolute top-4 right-4 flex gap-1.5 z-20">
+               <button onClick={() => addLayer('text')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><Type className="w-3 h-3"/> Texto</button>
+               <button onClick={() => addLayer('marquee')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><Navigation className="w-3 h-3 rotate-90"/> Letreiro</button>
+               <button onClick={() => addLayer('clock')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><Clock className="w-3 h-3"/> Relógio</button>
+               <button onClick={() => addLayer('media')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><ImageIcon className="w-3 h-3"/> Mídia</button>
+               <button onClick={() => addLayer('box')} className="px-2.5 py-1.5 bg-[#141414] hover:bg-[#1a1a1a] text-white/60 hover:text-white border border-[#222] rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-colors"><BoxIcon className="w-3 h-3"/> Caixa</button>
             </div>
 
             <div 
                ref={canvasRef}
-               className="relative bg-black border border-white/20 rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden shrink-0"
+               className="relative bg-black border border-[#1a1a1a] rounded-md overflow-hidden shrink-0"
                onContextMenu={(e: React.MouseEvent) => {
                   e.preventDefault();
                   setContextMenu({ x: e.clientX, y: e.clientY, layerId: null });
@@ -749,36 +743,34 @@ export default function Home() {
                   </div>
                )}
             </div>
-            <div className="mt-4 flex items-center justify-between w-full max-w-[960px]">
-               <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded border border-white/5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-[10px] text-white/50 font-medium uppercase tracking-wider">Preview 1080p</span>
+            <div className="mt-3 flex items-center justify-between w-full max-w-[960px]">
+               <div className="flex items-center gap-2 px-2.5 py-1 bg-[#111] rounded border border-[#1e1e1e]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-kick"></div>
+                  <span className="text-[10px] text-[#444] font-medium">1080p</span>
                </div>
-               <span className="text-[10px] text-white/30">1920x1080 • 60fps</span>
+               <span className="text-[10px] text-[#333]">1920×1080</span>
             </div>
          </div>
 
          {/* SIDEBAR DO STUDIO (PROPRIEDADES) */}
-         <div className="w-full md:w-[450px] bg-[var(--color-bg-panel)] border-l border-white/10 p-6 overflow-y-auto flex flex-col z-10 shrink-0 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-5 mb-6">
-               <div className="p-2 bg-kick/10 rounded-lg">
-                  <Settings className="w-5 h-5 text-kick"/>
-               </div>
-               <h2 className="text-lg font-medium text-white/90 tracking-wide">Propriedades</h2>
+         <div className="w-full md:w-[400px] bg-[var(--color-bg-panel)] border-l border-[#1e1e1e] p-5 overflow-y-auto flex flex-col z-10 shrink-0">
+            <div className="flex items-center gap-2.5 border-b border-[#1e1e1e] pb-4 mb-5">
+               <Settings className="w-4 h-4 text-[#444]"/>
+               <h2 className="text-[13px] font-medium text-white/80">Propriedades</h2>
             </div>
 
             {activeLayerId ? (
                <div className="flex flex-col gap-6">
                   {layers.map(layer => layer.id === activeLayerId && (
-                     <div key={layer.id} className="space-y-6">
-                        <div className="flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/10">
-                            <span className="text-sm font-semibold tracking-wide text-white">
+                     <div key={layer.id} className="space-y-5">
+                        <div className="flex justify-between items-center bg-[#111] p-2.5 rounded-lg border border-[#1e1e1e]">
+                            <span className="text-[12px] font-medium text-white/80">
                                 {layer.type === 'text' ? 'Texto' : layer.type === 'box' ? 'Caixa' : layer.type === 'media' ? 'Mídia' : layer.type === 'clock' ? 'Relógio' : 'Letreiro'}
                             </span>
-                            <div className="flex gap-1.5">
-                                <button onClick={() => moveLayerUp(layer.id)} className="text-white/40 hover:text-white bg-white/5 hover:bg-white/10 p-1.5 rounded transition-colors" title="Trazer para frente"><ArrowUp className="w-4 h-4"/></button>
-                                <button onClick={() => moveLayerDown(layer.id)} className="text-white/40 hover:text-white bg-white/5 hover:bg-white/10 p-1.5 rounded transition-colors" title="Mandar para trás"><ArrowDown className="w-4 h-4"/></button>
-                                <button onClick={() => removeLayer(activeLayerId)} className="text-red-400/70 hover:text-red-400 bg-red-400/5 hover:bg-red-400/10 p-1.5 rounded flex items-center justify-center transition-colors ml-2"><Trash2 className="w-4 h-4"/></button>
+                            <div className="flex gap-1">
+                                <button onClick={() => moveLayerUp(layer.id)} className="text-[#555] hover:text-white p-1 rounded transition-colors" title="Trazer para frente"><ArrowUp className="w-3.5 h-3.5"/></button>
+                                <button onClick={() => moveLayerDown(layer.id)} className="text-[#555] hover:text-white p-1 rounded transition-colors" title="Mandar para trás"><ArrowDown className="w-3.5 h-3.5"/></button>
+                                <button onClick={() => removeLayer(activeLayerId)} className="text-red-400/60 hover:text-red-400 p-1 rounded transition-colors ml-1"><Trash2 className="w-3.5 h-3.5"/></button>
                             </div>
                         </div>
 
@@ -999,9 +991,9 @@ export default function Home() {
                   ))}
                </div>
             ) : (
-               <div className="flex-1 flex flex-col items-center justify-center text-text-secondary/50 text-center px-4">
-                  <Layout className="w-12 h-12 mb-4 opacity-20" />
-                  <span className="text-sm">Clique em um elemento no Canvas para editar suas configurações, ou adicione uma nova camada acima.</span>
+               <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                  <Layout className="w-8 h-8 mb-3 text-[#222]" />
+                  <span className="text-[12px] text-[#444]">Selecione um elemento ou crie um novo.</span>
                </div>
             )}
          </div>
@@ -1009,7 +1001,7 @@ export default function Home() {
 
       {contextMenu && (
          <div 
-            className="fixed z-50 bg-[#121212] border border-white/10 rounded-lg shadow-xl py-1 min-w-[150px]"
+            className="fixed z-50 bg-[#161616] border border-[#222] rounded-lg py-1 min-w-[140px]"
             style={{ left: contextMenu.x, top: contextMenu.y }}
          >
             {contextMenu.layerId ? (
@@ -1030,15 +1022,15 @@ export default function Home() {
                </>
             ) : (
                <>
-                  <div className="px-3 py-1 text-xs text-white/30 font-bold uppercase tracking-wider mb-1">Adicionar</div>
-                  <button onClick={() => addLayer('text')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
-                     <Type className="w-4 h-4" /> Novo Texto
+                  <div className="px-3 py-1 text-[10px] text-[#444] font-medium mb-0.5">Adicionar</div>
+                  <button onClick={() => addLayer('text')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                     <Type className="w-3.5 h-3.5" /> Texto
                   </button>
-                  <button onClick={() => addLayer('box')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
-                     <BoxIcon className="w-4 h-4" /> Nova Caixa
+                  <button onClick={() => addLayer('box')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                     <BoxIcon className="w-3.5 h-3.5" /> Caixa
                   </button>
-                  <button onClick={() => addLayer('media')} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
-                     <ImageIcon className="w-4 h-4" /> Nova Mídia
+                  <button onClick={() => addLayer('media')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                     <ImageIcon className="w-3.5 h-3.5" /> Mídia
                   </button>
                </>
             )}
