@@ -148,13 +148,53 @@ const streamManager = {
     const filters = [];
     let lastVideoMap = '0:v';
 
-    filters.push({
-      filter: 'scale',
-      options: `${_config.canvasWidth}:${_config.canvasHeight}`,
-      inputs: lastVideoMap,
-      outputs: 'base_scaled'
-    });
-    lastVideoMap = 'base_scaled';
+    if (_config.isFreeCameraEnabled && _config.baseMediaTransform) {
+      const transform = _config.baseMediaTransform;
+      // Scale
+      filters.push({
+        filter: 'scale',
+        options: `${transform.w}:${transform.h}`,
+        inputs: '0:v',
+        outputs: 'base_scaled_step1'
+      });
+      let currentOut = 'base_scaled_step1';
+
+      // Rotate
+      if (transform.rotation !== 0) {
+        filters.push({
+          filter: 'rotate',
+          options: `${transform.rotation}*PI/180:c=none`,
+          inputs: currentOut,
+          outputs: 'base_rotated'
+        });
+        currentOut = 'base_rotated';
+      }
+
+      // Create black background
+      filters.push({
+        filter: 'color',
+        options: `c=black:s=${_config.canvasWidth}x${_config.canvasHeight}`,
+        outputs: 'bg_canvas'
+      });
+
+      // Overlay the video on the black background
+      filters.push({
+        filter: 'overlay',
+        options: `x=${transform.x}:y=${transform.y}`,
+        inputs: ['bg_canvas', currentOut],
+        outputs: 'base_scaled'
+      });
+      lastVideoMap = 'base_scaled';
+
+    } else {
+      filters.push({
+        filter: 'scale',
+        options: `${_config.canvasWidth}:${_config.canvasHeight}`,
+        inputs: lastVideoMap,
+        outputs: 'base_scaled'
+      });
+      lastVideoMap = 'base_scaled';
+    }
     
     // Apply global EQ filters
     const b = _globalFilters.brightness || 0;

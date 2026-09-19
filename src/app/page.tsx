@@ -93,6 +93,10 @@ export default function Home() {
   const [layers, setLayers] = useState<LayerUI[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [isStreamConfigOpen, setIsStreamConfigOpen] = useState(false);
+
+  const [isFreeCameraEnabled, setIsFreeCameraEnabled] = useState(false);
+  const [baseMediaTransform, setBaseMediaTransform] = useState({ x: 0, y: 0, w: 1920, h: 1080, rotation: 0 });
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -128,6 +132,8 @@ export default function Home() {
         if (data.fps) setFps(data.fps);
         if (data.videoBitrate) setVideoBitrate(data.videoBitrate);
         if (data.audioBitrate) setAudioBitrate(data.audioBitrate);
+        if (data.isFreeCameraEnabled !== undefined) setIsFreeCameraEnabled(data.isFreeCameraEnabled);
+        if (data.baseMediaTransform) setBaseMediaTransform(data.baseMediaTransform);
       } catch (e) {}
     }
   }, []);
@@ -143,9 +149,11 @@ export default function Home() {
       canvasHeight,
       fps,
       videoBitrate,
-      audioBitrate
+      audioBitrate,
+      isFreeCameraEnabled,
+      baseMediaTransform
     }));
-  }, [streamUrl, streamKey, workerUrl, presets, globalFilters, canvasWidth, canvasHeight, fps, videoBitrate, audioBitrate]);
+  }, [streamUrl, streamKey, workerUrl, presets, globalFilters, canvasWidth, canvasHeight, fps, videoBitrate, audioBitrate, isFreeCameraEnabled, baseMediaTransform]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -451,7 +459,9 @@ export default function Home() {
        canvasHeight,
        fps,
        videoBitrate,
-       audioBitrate
+       audioBitrate,
+       isFreeCameraEnabled,
+       baseMediaTransform
     }));
 
     // Append video files
@@ -797,6 +807,16 @@ export default function Home() {
             <button onClick={() => setIsStudioOpen(false)} className="bg-[#1a1a1a] hover:bg-[#222] p-2.5 rounded-lg text-white/70 hover:text-white transition-colors border border-[#252525]">
                <X className="w-5 h-5"/>
             </button>
+            <button onClick={() => setIsStreamConfigOpen(true)} className="bg-[#1a1a1a] hover:bg-[#222] p-2.5 rounded-lg text-white/70 hover:text-white transition-colors border border-[#252525]">
+               <Settings className="w-5 h-5"/>
+            </button>
+            <button 
+               onClick={() => setIsFreeCameraEnabled(!isFreeCameraEnabled)} 
+               className={`px-3 py-2 rounded-lg font-medium flex items-center gap-2 text-[12px] transition-colors border ${isFreeCameraEnabled ? 'bg-kick/20 text-kick border-kick/30' : 'bg-[#1a1a1a] text-white/70 border-[#252525] hover:bg-[#222]'}`}
+            >
+               <Move className="w-4 h-4"/> Câmera Livre
+            </button>
+
             {isStreaming && (
                <button onClick={updateLiveStream} disabled={isLoading} className="bg-kick text-black hover:bg-kick/85 px-3.5 py-2 rounded-lg font-semibold flex items-center gap-2 text-[12px] transition-colors">
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Atualizar
@@ -831,6 +851,31 @@ export default function Home() {
                   backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' 
                }}
             >
+               {isFreeCameraEnabled && (
+                  <Rnd
+                     bounds="parent"
+                     position={{ x: Math.round(baseMediaTransform.x * RATIO), y: Math.round(baseMediaTransform.y * RATIO) }}
+                     size={{ width: Math.round(baseMediaTransform.w * RATIO).toString(), height: Math.round(baseMediaTransform.h * RATIO).toString() }}
+                     onDragStop={(e, d) => setBaseMediaTransform(prev => ({ ...prev, x: Math.round(d.x / RATIO), y: Math.round(d.y / RATIO) }))}
+                     onResizeStop={(e, direction, ref, delta, position) => {
+                        setBaseMediaTransform(prev => ({
+                           ...prev,
+                           x: Math.round(position.x / RATIO),
+                           y: Math.round(position.y / RATIO),
+                           w: Math.round(ref.offsetWidth / RATIO),
+                           h: Math.round(ref.offsetHeight / RATIO)
+                        }));
+                     }}
+                     className="z-0"
+                  >
+                     <div className="w-full h-full relative" style={{ transform: `rotate(${baseMediaTransform.rotation || 0}deg)` }}>
+                        <div className="absolute inset-0 bg-kick/20 border-2 border-kick border-dashed rounded flex items-center justify-center">
+                           <span className="text-kick font-bold text-xs bg-black/50 px-2 py-1 rounded">Transmissão Base</span>
+                        </div>
+                     </div>
+                  </Rnd>
+               )}
+
                {layers.map(layer => {
                   let styleObj: React.CSSProperties = {
                      width: '100%',
@@ -1214,6 +1259,36 @@ export default function Home() {
                      </div>
                   ))}
                </div>
+            ) : isFreeCameraEnabled ? (
+               <div className="flex flex-col gap-4">
+                  <div className="space-y-4">
+                     <div className="flex justify-between items-center bg-[#111] px-3 py-2 rounded-md border border-[#1e1e1e]">
+                        <span className="text-[12px] font-medium text-kick">Transmissão Base</span>
+                     </div>
+                     
+                     <div>
+                        <div className="flex items-center gap-1.5 mb-3">
+                           <Move className="w-3 h-3 text-[#444]" />
+                           <span className="text-[10px] font-medium text-[#555] uppercase tracking-wider">Transformação</span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                           <div>
+                              <div className="flex justify-between items-center mb-1.5">
+                                 <span className="text-[11px] text-[#666]">Rotação (graus)</span>
+                                 <span className="text-[10px] text-[#444]">{baseMediaTransform.rotation}°</span>
+                              </div>
+                              <input type="range" min="0" max="360" step="1" value={baseMediaTransform.rotation} onChange={(e) => setBaseMediaTransform(prev => ({ ...prev, rotation: parseInt(e.target.value) || 0 }))} className="w-full accent-kick h-1.5 bg-[#222] rounded-full appearance-none" />
+                           </div>
+                           
+                           <div className="flex gap-2 pt-2">
+                              <button onClick={() => setBaseMediaTransform(prev => ({ ...prev, rotation: 0 }))} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1.5 rounded text-white/70 border border-[#252525]">Resetar</button>
+                              <button onClick={() => setBaseMediaTransform(prev => ({ ...prev, rotation: 90 }))} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1.5 rounded text-white/70 border border-[#252525]">90° (Retrato)</button>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
             ) : (
                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
                   <Layout className="w-8 h-8 mb-3 text-[#222]" />
@@ -1223,43 +1298,119 @@ export default function Home() {
          </div>
       </div>
 
-      {contextMenu && (
-         <div 
-            className="fixed z-50 bg-[#161616] border border-[#222] rounded-lg py-1 min-w-[140px]"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-         >
-            {contextMenu.layerId ? (
-               <>
-                  <button onClick={() => {
-                     const layer = layers.find(l => l.id === contextMenu.layerId);
-                     if (layer) {
-                        const newLayer = { ...layer, id: Math.random().toString(36).substr(2, 9), x: layer.x + 50, y: layer.y + 50 };
-                        setLayers([...layers, newLayer]);
-                        setActiveLayerId(newLayer.id);
-                     }
-                  }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
-                     <Copy className="w-4 h-4" /> Duplicar
-                  </button>
-                  <button onClick={() => removeLayer(contextMenu.layerId!)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2">
-                     <Trash2 className="w-4 h-4" /> Deletar
-                  </button>
-               </>
-            ) : (
-               <>
-                  <div className="px-3 py-1 text-[10px] text-[#444] font-medium mb-0.5">Adicionar</div>
-                  <button onClick={() => addLayer('text')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
-                     <Type className="w-3.5 h-3.5" /> Texto
-                  </button>
-                  <button onClick={() => addLayer('box')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
-                     <BoxIcon className="w-3.5 h-3.5" /> Caixa
-                  </button>
-                  <button onClick={() => addLayer('media')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
-                     <ImageIcon className="w-3.5 h-3.5" /> Mídia
-                  </button>
-               </>
-            )}
-         </div>
-      )}
+       {contextMenu && (
+          <div 
+             className="fixed z-50 bg-[#161616] border border-[#222] rounded-lg py-1 min-w-[140px]"
+             style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+             {contextMenu.layerId ? (
+                <>
+                   <button onClick={() => {
+                      const layer = layers.find(l => l.id === contextMenu.layerId);
+                      if (layer) {
+                         const newLayer = { ...layer, id: Math.random().toString(36).substr(2, 9), x: layer.x + 50, y: layer.y + 50 };
+                         setLayers([...layers, newLayer]);
+                         setActiveLayerId(newLayer.id);
+                      }
+                   }} className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 flex items-center gap-2">
+                      <Copy className="w-4 h-4" /> Duplicar
+                   </button>
+                   <button onClick={() => removeLayer(contextMenu.layerId!)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5 flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" /> Deletar
+                   </button>
+                </>
+             ) : (
+                <>
+                   <div className="px-3 py-1 text-[10px] text-[#444] font-medium mb-0.5">Adicionar</div>
+                   <button onClick={() => addLayer('text')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                      <Type className="w-3.5 h-3.5" /> Texto
+                   </button>
+                   <button onClick={() => addLayer('box')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                      <BoxIcon className="w-3.5 h-3.5" /> Caixa
+                   </button>
+                   <button onClick={() => addLayer('media')} className="w-full text-left px-3 py-1.5 text-[12px] text-white/80 hover:bg-[#1a1a1a] flex items-center gap-2">
+                      <ImageIcon className="w-3.5 h-3.5" /> Mídia
+                   </button>
+                </>
+             )}
+          </div>
+       )}
+
+       {/* STREAM CONFIG MODAL */}
+       <AnimatePresence>
+          {isStreamConfigOpen && (
+             <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
+             >
+                <motion.div 
+                   initial={{ scale: 0.95, opacity: 0 }} 
+                   animate={{ scale: 1, opacity: 1 }} 
+                   exit={{ scale: 0.95, opacity: 0 }} 
+                   className="bg-[#0f0f0f] border border-[#222] rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
+                >
+                   <div className="flex justify-between items-center p-4 border-b border-[#222]">
+                      <div className="flex items-center gap-2">
+                         <Settings className="w-4 h-4 text-kick" />
+                         <h3 className="font-semibold text-[13px] text-white">Configuração da Transmissão</h3>
+                      </div>
+                      <button onClick={() => setIsStreamConfigOpen(false)} className="text-[#555] hover:text-white transition-colors p-1">
+                         <X className="w-4 h-4" />
+                      </button>
+                   </div>
+                   
+                   <div className="p-5 space-y-5">
+                      <div className="space-y-2">
+                         <label className="text-[11px] font-medium text-[#777] block">Resolução de Saída (Canvas)</label>
+                         <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                               <span className="text-[10px] text-[#444] block">Largura (W)</span>
+                               <input type="number" value={canvasWidth} onChange={(e) => setCanvasWidth(parseInt(e.target.value) || 1920)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                            <div className="space-y-1">
+                               <span className="text-[10px] text-[#444] block">Altura (H)</span>
+                               <input type="number" value={canvasHeight} onChange={(e) => setCanvasHeight(parseInt(e.target.value) || 1080)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                         </div>
+                         <div className="flex gap-2 pt-1">
+                            <button onClick={() => { setCanvasWidth(1920); setCanvasHeight(1080); }} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1.5 rounded text-white/70 border border-[#252525]">16:9 HD</button>
+                            <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1920); }} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1.5 rounded text-white/70 border border-[#252525]">9:16 Vertical</button>
+                            <button onClick={() => { setCanvasWidth(1080); setCanvasHeight(1080); }} className="flex-1 text-[10px] bg-[#1a1a1a] hover:bg-[#222] py-1.5 rounded text-white/70 border border-[#252525]">1:1 Quad</button>
+                         </div>
+                      </div>
+
+                      <div className="h-px bg-[#1e1e1e]"></div>
+
+                      <div className="space-y-2">
+                         <label className="text-[11px] font-medium text-[#777] block">Qualidade & Encoding</label>
+                         <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                               <span className="text-[10px] text-[#444] block">FPS</span>
+                               <input type="number" value={fps} onChange={(e) => setFps(parseInt(e.target.value) || 30)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                            <div className="space-y-1">
+                               <span className="text-[10px] text-[#444] block">Vídeo (kbps)</span>
+                               <input type="number" value={videoBitrate} onChange={(e) => setVideoBitrate(parseInt(e.target.value) || 3000)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                            <div className="space-y-1">
+                               <span className="text-[10px] text-[#444] block">Áudio (kbps)</span>
+                               <input type="number" value={audioBitrate} onChange={(e) => setAudioBitrate(parseInt(e.target.value) || 160)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <div className="p-4 bg-[#141414] border-t border-[#222] flex justify-end">
+                      <button onClick={() => setIsStreamConfigOpen(false)} className="bg-kick text-black hover:bg-kick/85 px-4 py-2 rounded-lg text-xs font-semibold transition-colors">
+                         Concluído
+                      </button>
+                   </div>
+                </motion.div>
+             </motion.div>
+          )}
+       </AnimatePresence>
 
     </main>
   );

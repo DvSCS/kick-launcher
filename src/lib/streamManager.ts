@@ -60,6 +60,8 @@ interface StreamConfig {
   fps: number;
   videoBitrate: number;
   audioBitrate: number;
+  isFreeCameraEnabled?: boolean;
+  baseMediaTransform?: { x: number; y: number; w: number; h: number; rotation: number };
 }
 
 let activeCommand: ffmpeg.FfmpegCommand | null = null;
@@ -162,15 +164,53 @@ export const streamManager = {
     const filters: ffmpeg.FilterSpecification[] = [];
     let lastVideoMap = '0:v';
 
-    if (_overlayItems.length > 0 || _globalFilters.brightness !== 0 || _globalFilters.contrast !== 1 || _globalFilters.saturation !== 1) {
-       filters.push({
-          filter: 'scale',
-          options: `${_config.canvasWidth}:${_config.canvasHeight}`,
-          inputs: '0:v',
-          outputs: 'base_scaled'
-       });
-       lastVideoMap = 'base_scaled';
-       
+    // --- Base Media (Scale / Rotate / Background) ---
+    if (_config.isFreeCameraEnabled && _config.baseMediaTransform) {
+      const transform = _config.baseMediaTransform;
+      
+      filters.push({
+        filter: 'scale',
+        options: `${transform.w}:${transform.h}`,
+        inputs: '0:v',
+        outputs: 'base_scaled_step1'
+      });
+      let currentOut = 'base_scaled_step1';
+
+      if (transform.rotation !== 0) {
+        filters.push({
+          filter: 'rotate',
+          options: `${transform.rotation}*PI/180:c=none`,
+          inputs: currentOut,
+          outputs: 'base_rotated'
+        });
+        currentOut = 'base_rotated';
+      }
+
+      filters.push({
+        filter: 'color',
+        options: `c=black:s=${_config.canvasWidth}x${_config.canvasHeight}`,
+        outputs: 'bg_canvas'
+      });
+
+      filters.push({
+        filter: 'overlay',
+        options: `x=${transform.x}:y=${transform.y}`,
+        inputs: ['bg_canvas', currentOut],
+        outputs: 'base_scaled'
+      });
+      lastVideoMap = 'base_scaled';
+      
+    } else {
+      if (_overlayItems.length > 0 || _globalFilters.brightness !== 0 || _globalFilters.contrast !== 1 || _globalFilters.saturation !== 1) {
+         filters.push({
+            filter: 'scale',
+            options: `${_config.canvasWidth}:${_config.canvasHeight}`,
+            inputs: '0:v',
+            outputs: 'base_scaled'
+         });
+         lastVideoMap = 'base_scaled';
+      }
+    }   
        const b = _globalFilters.brightness || 0;
        const c = _globalFilters.contrast !== undefined ? _globalFilters.contrast : 1;
        const s = _globalFilters.saturation !== undefined ? _globalFilters.saturation : 1;
@@ -184,7 +224,6 @@ export const streamManager = {
           });
           lastVideoMap = 'base_video';
        }
-    }
 
     let inputIndex = 1; // 0 é o video principal
 
