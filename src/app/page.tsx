@@ -80,8 +80,6 @@ export default function Home() {
   const [canvasWidth, setCanvasWidth] = useState(1920);
   const [canvasHeight, setCanvasHeight] = useState(1080);
   const [fps, setFps] = useState(30);
-  const [videoBitrate, setVideoBitrate] = useState(3000);
-  const [audioBitrate, setAudioBitrate] = useState(160);
 
   // Derived Canvas Constants
   const PREVIEW_MAX_W = 960;
@@ -135,9 +133,6 @@ export default function Home() {
         if (data.canvasWidth) setCanvasWidth(data.canvasWidth);
         if (data.canvasHeight) setCanvasHeight(data.canvasHeight);
         if (data.fps) setFps(data.fps);
-        if (data.videoBitrate) setVideoBitrate(data.videoBitrate);
-        if (data.audioBitrate) setAudioBitrate(data.audioBitrate);
-        if (data.isFreeCameraEnabled !== undefined) setIsFreeCameraEnabled(data.isFreeCameraEnabled);
         if (data.baseMediaTransform) setBaseMediaTransform(data.baseMediaTransform);
       } catch (e) {}
     }
@@ -153,12 +148,10 @@ export default function Home() {
       canvasWidth,
       canvasHeight,
       fps,
-      videoBitrate,
-      audioBitrate,
       isFreeCameraEnabled,
       baseMediaTransform
     }));
-  }, [streamUrl, streamKey, workerUrl, presets, globalFilters, canvasWidth, canvasHeight, fps, videoBitrate, audioBitrate, isFreeCameraEnabled, baseMediaTransform]);
+  }, [streamUrl, streamKey, workerUrl, presets, globalFilters, canvasWidth, canvasHeight, fps, isFreeCameraEnabled, baseMediaTransform]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -488,8 +481,6 @@ export default function Home() {
        canvasWidth,
        canvasHeight,
        fps,
-       videoBitrate,
-       audioBitrate,
        isFreeCameraEnabled,
        baseMediaTransform
     }));
@@ -1409,18 +1400,10 @@ export default function Home() {
 
                       <div className="space-y-2">
                          <label className="text-[11px] font-medium text-[#777] block">Qualidade & Encoding</label>
-                         <div className="grid grid-cols-3 gap-3">
+                         <div className="grid grid-cols-1 gap-3">
                             <div className="space-y-1">
                                <span className="text-[10px] text-[#444] block">FPS</span>
                                <input type="number" value={fps} onChange={(e) => setFps(parseInt(e.target.value) || 30)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                            </div>
-                            <div className="space-y-1">
-                               <span className="text-[10px] text-[#444] block">Vídeo (kbps)</span>
-                               <input type="number" value={videoBitrate} onChange={(e) => setVideoBitrate(parseInt(e.target.value) || 3000)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
-                            </div>
-                            <div className="space-y-1">
-                               <span className="text-[10px] text-[#444] block">Áudio (kbps)</span>
-                               <input type="number" value={audioBitrate} onChange={(e) => setAudioBitrate(parseInt(e.target.value) || 160)} className="w-full bg-[#161616] border border-[#2a2a2a] rounded px-3 py-2 text-xs text-white focus:border-kick focus:outline-none transition-colors" />
                             </div>
                          </div>
                       </div>
