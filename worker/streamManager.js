@@ -131,13 +131,11 @@ const streamManager = {
     const targetUrl = 'udp://127.0.0.1:10000?pkt_size=1316';
     
     const isHls = item.url.includes('.m3u8') || item.url.includes('.m3u');
-    const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv');
-    
-    // Para lives puras (.m3u8 que não são VOD), NÃO usamos -re, pois o FFmpeg precisa puxar na velocidade que a fonte gera.
-    // Usar -re em uma live HLS verdadeira causa stuttering por dessincronia.
-    // Mas para VODs ou arquivos locais, PRECISAMOS do -re para não processar 1 hora de vídeo em 1 segundo.
+    const isVod = item.url.includes('/movie/') || item.url.includes('/series/') || item.url.includes('/video/') || item.url.includes('/vod/') || item.url.endsWith('.mp4') || item.url.endsWith('.mkv') || item.url.endsWith('.ts');
     const isLocal = item.url.startsWith('C:\\') || item.url.startsWith('/') || item.url.includes('tmp\\preset_') || item.url.includes('tmp/preset_');
-    const useRe = isVod || item.isLoop;
+    
+    // We should use -re for ALL local files (except looping ones) and ALL non-HLS streams (since they might download instantly)
+    const useRe = !isHls || item.isLoop || isLocal || isVod;
 
     const baseOptions = [
       '-thread_queue_size', '1024',
